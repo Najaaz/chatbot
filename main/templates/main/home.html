@@ -6,10 +6,14 @@
 
 {% block content %}
     <div class="container">
-        <div class="content">
-            <h1>Welcome to Kiddoz!</h1>
-            <p>Your one-stop solution for all your kids' needs.</p>
-            <a href="#" class="btn">Start Chatting</a>
-        </div>
+        <!-- Desing a simple home page with the logo and some text tempting the user to click the chatbot -->
+        <div class="row justify-content-center align-items-center vh-100">
+            <div class="col text-center">
+                <img src="{% static 'images/logo.png' %}" alt="Kiddoz Logo" class="img-fluid m-4" style="max-width: 500px;">
+                <h1 class="fw-bold fs-1">👋 Welcome to Kiddoz!</h1>
+                <h3 class="text-secondary fw-bold">Your AI-powered shopping assistant.</h3>
+                <p class="lead">Click the button below to start chatting with me!</p>   
+            </div>
+        </div>  
     </div>
 {% endblock %}
