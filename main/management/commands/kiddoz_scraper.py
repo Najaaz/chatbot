@@ -29,6 +29,9 @@ from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
+# import database
+from main.models import Product
+
 known_colours = [
     'black', 'white', 'blue', 'red', 'green', 'yellow', 'pink', 'purple',
     'orange', 'brown', 'grey', 'gray', 'beige', 'navy', 'maroon', 'cyan',
@@ -956,71 +959,46 @@ class StorageManager:
         self.filename = filename
         self.fieldnames = None  # Will store column headers
     
-    def save_to_csv(self, product_data):
+    def save_to_db(self, product_data):
         """Save product data to a CSV file."""
         try:
-            # Determine if file exists to write headers
-            file_exists = os.path.isfile(self.filename)
-            
-            # If this is the first write, store the fieldnames
-            if not self.fieldnames:
-                self.fieldnames = list(product_data.keys())
-            
-            with open(self.filename, 'a', newline='', encoding='utf-8') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=self.fieldnames)
-                
-                if not file_exists:
-                    writer.writeheader()
-                
-                # Ensure all fields are present
-                for field in self.fieldnames:
-                    if field not in product_data:
-                        product_data[field] = ""
-                
-                # Write only the fields in fieldnames
-                row_data = {field: product_data.get(field, "") for field in self.fieldnames}
-                writer.writerow(row_data)
-                
-            logger.info(f"Product data saved to {self.filename}")
+            product, created = Product.objects.update_or_create(
+            url=product_data['url'],
+            defaults={
+                'name': product_data.get('name', ''),
+                'brand': product_data.get('brand', ''),
+                'categories': product_data.get('categories', []),
+
+                'current_price': float(product_data.get('current_price', 0)),
+                'original_price': float(product_data.get('original_price', 0)),
+                'has_discount': str(product_data.get('has_discount', '')).lower() == 'yes',
+                'discount_percentage': float(product_data.get('discount_percentage', 0)),
+
+                'in_stock': str(product_data.get('availability', '')).lower() == 'in stock',
+                'color_options': json.loads(product_data.get('color_options', '[]')),
+                'color_availability': json.loads(product_data.get('color_availability', '{}')),
+
+                'description': json.loads(product_data.get('description', '[]')),
+                'specifications': json.loads(product_data.get('specifications', '{}')),
+
+                'image_urls': json.loads(product_data.get('image_urls', '[]')),
+                'image_count': int(product_data.get('image_count', 0)),
+
+                'rating': float(product_data['rating']) if product_data.get('rating') not in [None, 'Not found'] else None,
+                'size': product_data.get('size', ''),
+                'weight_range': product_data.get('weight_range', ''),
+                'count': int(product_data['count']) if product_data.get('count') not in [None, 'Not specified', 'Not found'] else None,
+                'is_active': True,
+                }
+            )
+
+            logger.info(f"{'Created' if created else 'Updated'} product in DB: {product.name}")
             return True
+    
         except Exception as e:
-            logger.error(f"\033[91mError saving to CSV: {e}\033[0m")
+            logger.error(f"\033[91mError saving product to database: {e}\033[0m")
             return False
     
-    def save_to_json(self, product_data, filename=None):
-        """Save product data to a JSON file."""
-        try:
-            if filename is None:
-                filename = self.filename.replace('.csv', '.json')
-            
-            # Append to existing JSON file or create new one
-            if os.path.isfile(filename):
-                with open(filename, 'r+', encoding='utf-8') as jsonfile:
-                    try:
-                        data = json.load(jsonfile)
-                        if isinstance(data, list):
-                            data.append(product_data)
-                        else:
-                            data = [data, product_data]
-                        
-                        jsonfile.seek(0)
-                        jsonfile.truncate()
-                        json.dump(data, jsonfile, indent=2)
-                    except json.JSONDecodeError:
-                        # File exists but is not valid JSON, overwrite it
-                        jsonfile.seek(0)
-                        jsonfile.truncate()
-                        json.dump([product_data], jsonfile, indent=2)
-            else:
-                with open(filename, 'w', encoding='utf-8') as jsonfile:
-                    json.dump([product_data], jsonfile, indent=2)
-            
-            logger.info(f"Product data saved to {filename}")
-            return True
-        except Exception as e:
-            logger.error(f"\033[91mError saving to JSON: {e}\033[0m")
-            return False
-
 class KiddozScraper:
     """Main scraper class that orchestrates the scraping process."""
     
@@ -1032,6 +1010,7 @@ class KiddozScraper:
         self.timeout = timeout
         self.failed_urls = []
         self.use_selenium = use_selenium
+        Product.objects.update(is_active=False)  # Mark all products as inactive before scraping
     
     def scrape_product(self, url):
         """Scrape a single product page."""
@@ -1126,7 +1105,7 @@ class KiddozScraper:
                         
                         # Save product data
                         if product_data:
-                            self.storage_manager.save_to_csv(product_data)
+                            self.storage_manager.save_to_db(product_data)
                             successful_count += 1
                         
                         # Log progress

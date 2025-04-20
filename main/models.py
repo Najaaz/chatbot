@@ -1,5 +1,10 @@
 from django.db import models
 
+class ProductManager(models.Manager):
+
+    def active(self):
+        return self.get_queryset().filter(is_active=True)
+
 # Create your models here.
 class Product (models.Model):
     """
@@ -42,6 +47,10 @@ class Product (models.Model):
 
     # — housekeeping —
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)                # soft delete flag
+
+    objects = ProductManager()
 
     def __str__(self) -> str:
         return self.name
