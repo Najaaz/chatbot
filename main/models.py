@@ -1,4 +1,29 @@
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.exceptions import ValidationError
+
+age_suitability_choices = (
+    ('0-5 months', '0-5 months'),
+    ('6-11 months', '6-11 months'),
+    ('1-1.5 years', '1-1.5 years'),
+    ('1.6-2 years', '1.6-2 years'),
+    ('3-5 years', '3-5 years'),
+    ('6-8 years', '6-8 years'),
+    ('9-12 years', '9-12 years'),
+    ('mothers', 'mothers'),
+)
+
+gender_choices = (
+    ('Male', 'Male'),
+    ('Female', 'Female'),
+    ('Unisex', 'Unisex'),
+)
+
+months = {
+    1: "January", 2: "February", 3: "March", 4: "April",
+    5: "May", 6: "June", 7: "July", 8: "August",
+    9: "September", 10: "October", 11: "November", 12: "December",
+}
 
 class ProductManager(models.Manager):
 
@@ -50,7 +75,39 @@ class Product (models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)                # soft delete flag
 
+    # — inferred attributes —
+    age_suitability = models.CharField(max_length=20, choices=age_suitability_choices, default='0-5 months')  # e.g. "0-5 months"
+    gender = models.CharField(max_length=10, choices=gender_choices, default='Unisex')  # e.g. "Unisex"
+    giftability = models.DecimalField(max_digits=3, decimal_places=1, default=0.0, validators=[MinValueValidator(0.0), MaxValueValidator(10)])  # e.g. 8.5
+    educational_value = models.DecimalField(max_digits=3, decimal_places=1, default=0.0, validators=[MinValueValidator(0.0), MaxValueValidator(10)])  # e.g. 7.5
+    durability = models.DecimalField(max_digits=3, decimal_places=1, default=0.0, validators=[MinValueValidator(0.0), MaxValueValidator(10)])  # e.g. 9.0
+    value_for_money = models.DecimalField(max_digits=3, decimal_places=1, default=0.0, validators=[MinValueValidator(0.0), MaxValueValidator(10)])  # e.g. 8.0
+    safety_perception = models.DecimalField(max_digits=3, decimal_places=1, default=0.0, validators=[MinValueValidator(0.0), MaxValueValidator(10)])  # e.g. 9.5
+    seasonal_use = models.JSONField(default=list) # e.g. [1,4,5] (1=Jan, 2=Feb, ... 12=Dec)
+
     objects = ProductManager()
 
     def __str__(self) -> str:
         return self.name
+    
+    def get_seasonal_month_names(self):
+        """
+        Returns a list of month names based on the seasonal_use field.
+        """
+        return [months[month] for month in self.seasonal_use if month in months]
+    
+    def clean(self):
+        """
+        Custom validation logic for the Product model.
+        """
+        # Validate that the discount percentage is between 0 and 100 if has_discount is True
+        if self.has_discount and (self.discount_percentage <= 0 or self.discount_percentage >= 100):
+            raise ValidationError("Discount percentage must be between 0 and 100 when has_discount is True.")
+        elif not self.has_discount:
+            self.discount_percentage = 0.0
+
+        # Validate that the seasonal_use field contains valid month numbers (1-12) in a list
+        if not isinstance(self.seasonal_use, list):
+            raise ValidationError("seasonal_use must be a list of months.")
+        if not all(isinstance(m, int) and 1 <= m <= 12 for m in self.seasonal_use):
+            raise ValidationError("Each month in seasonal_use must be an integer between 1 and 12.")

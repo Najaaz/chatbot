@@ -72,7 +72,7 @@ class RequestHandler:
             'Accept-Language': 'en-US,en;q=0.9'
         }
     
-    def get(self, url, timeout=30):
+    def get(self, url, timeout=15):
         """
         Perform a GET request with retry logic and error handling.
         
@@ -1034,7 +1034,7 @@ class KiddozScraper:
 
                     # Wait for a specific element that indicates the page is fully loaded
                     try:
-                        WebDriverWait(driver, 4).until(
+                        WebDriverWait(driver, 3).until(
                             EC.presence_of_element_located((By.CSS_SELECTOR, ".swatch-attribute.color"))
                         )
                     except TimeoutException:
