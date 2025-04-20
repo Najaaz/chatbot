@@ -41,7 +41,7 @@ def webscrape_all_products(url) -> list[str]:
 
 class Command(BaseCommand):
     """
-    Usage: python manage.py scrape_kiddoz_links
+    Usage: python manage.py webscrape_all_products
     """
 
     help = "Scrapes kiddoz.lk product links from the sitemap and stores them as a txt file."
