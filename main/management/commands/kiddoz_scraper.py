@@ -1140,14 +1140,8 @@ class KiddozScraper:
             
             # Log summary
             logger.info(f"Scraping completed: {successful_count}/{total_count} products scraped successfully")
-            if self.failed_urls:
-                logger.warning(f"\033[93mFailed to scrape {len(self.failed_urls)} products\033[0m")
-                with open('failed_urls.txt', 'w') as f:
-                    for url in self.failed_urls:
-                        f.write(f"{url}\n")
-                logger.info("Failed URLs saved to failed_urls.txt")
             
-            return successful_count, len(self.failed_urls)
+            return successful_count, self.failed_urls, len(self.failed_urls)
         except Exception as e:
             logger.error(f"\033[91mError in scrape_products: {e}\033[0m")
             return 0, len(urls)

@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from datetime import datetime
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -127,3 +128,39 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
+
+LOG_DIR = os.path.join(BASE_DIR, 'logs', 'scraper')
+os.makedirs(LOG_DIR, exist_ok=True)
+
+today = datetime.now().strftime('%Y-%m-%d')
+log_file_path = os.path.join(LOG_DIR, f"{today}.log")
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} | {levelname:<8} | {name} | {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname}: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'scraper_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': log_file_path,
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'KiddozScraper': {
+            'handlers': ['scraper_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    }
+}

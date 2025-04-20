@@ -1,13 +1,14 @@
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from pathlib import Path
+import time
 from main.management.commands.kiddoz_scraper import KiddozScraper  # <-- assuming all scraping classes are in kiddoz_scraper.py
 
 import logging
 
 logger = logging.getLogger("KiddozScraper")
 
-LIMIT = 5  # Set to 0 for no limit, or specify a number to limit the number of products scraped
+LIMIT = 4  # Set to 0 for no limit, or specify a number to limit the number of products scraped
 WORKERS = 4  # Number of threads to use for scraping
 USE_SELENIUM = True  # Set to True if you want to use Selenium for JS-rendered pages
 
@@ -18,6 +19,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         input_file = Path(settings.MEDIA_ROOT) / "scraped" / "product_links.txt"
         output_file = Path(settings.MEDIA_ROOT) / "scraped" / "kiddoz_products.csv"
+        failed_file = Path(settings.MEDIA_ROOT) / "failed" / f"failed_urls_{time.strftime('%Y%m%d')}.txt"
 
         # Ensure output dir exists
         output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -43,11 +45,18 @@ class Command(BaseCommand):
         )
 
         # Scrape products
-        success_count, failed_count = scraper.scrape_products(
+        success_count, failed_urls, failed_count = scraper.scrape_products(
             urls=urls,
             output_file=str(output_file),
             max_workers=WORKERS  # Adjust based on your CPU cores
         )
+
+        # Write failed URLs to a file
+        if failed_urls:
+            with open(failed_file, "w") as f:
+                for url in failed_urls:
+                    f.write(f"{url}\n")
+            self.stdout.write(self.style.WARNING(f"⚠️ Failed URLs saved to: {failed_file}"))
 
         self.stdout.write(self.style.SUCCESS(f"✅ Scraped {success_count} products"))
         if failed_count:
