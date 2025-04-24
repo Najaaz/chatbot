@@ -31,23 +31,24 @@ document.addEventListener('DOMContentLoaded', () => {
     function startConversation() {
         appendMessage('bot', 'Hi there! How would you like the conversation to go?');
         scrollToBottom();
-        showOptions(['Guided Questions', 'Free Flow']);
+        showOptions(['Guided Questions', 'Free Flow'], handleSelection);
         disableInput(true);
     }
 
     // ── enable / disable input box ──
     function disableInput(on) {
+        input.value = '';
         input.disabled = on;
     }
 
     // ── show clickable bubbles ──
-    function showOptions(arr) {
+    function showOptions(arr, functionName) {
         optionsEl.innerHTML = '';
         arr.forEach(text => {
             const btn = document.createElement('div');
             btn.classList.add('option-bubble');
             btn.textContent = text;
-            btn.addEventListener('click', () => handleSelection(text));
+            btn.addEventListener('click', () => functionName(text));
             optionsEl.appendChild(btn);
         });
         optionsEl.style.display = 'flex';
@@ -81,56 +82,63 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await res.json();
             showTyping(false);
-            appendMessage('bot', data.message, data.options);
+            appendMessage('bot', data.response, data.options);
             scrollToBottom();
 
         } catch (err) {
+            console.error(err);
             showTyping(false);
             appendMessage('bot', 'Sorry, something went wrong.');
             disableInput(false);
             scrollToBottom();
         }
     }
-  
-    // OPTION 2: (Free flow text) send message
-    form.addEventListener('submit', async e => {
-        e.preventDefault();
-        const msg = input.value.trim();
-        if (!msg) return;
-    
-        appendMessage('user', msg);
-        input.value = '';
+
+    async function feedbackHandler(message) {
+        if (["reset", "clear", "restart", "start over", "new", "new chat", "new conversation"].includes(message.toLowerCase())) {
+            console.log('resetting conversation...');
+            appendMessage('user', message);
+            appendMessage('bot', "Sure! Starting a new conversation.");
+            startConversation();
+            return;
+        }
+        appendMessage('user', message);
         scrollToBottom();
+        clearOptions();
         showTyping(true);
-    
+
         try {
-            const res = await fetch('/chat/', {
+            const res = await fetch('chat/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken')
                 },
-                body: JSON.stringify({ message: msg })
+                body: JSON.stringify({ message: message })
             });
             const data = await res.json();
             showTyping(false);
-            appendMessage('bot', data.reply);
+            appendMessage('bot', data.response, data.options);
             scrollToBottom();
 
-            if (Array.isArray(data.options) && data.options.length) {
-                showOptions(data.options);
-            } else {
-                disableInput(false);
-                input.focus();
-            }
         } catch (err) {
+            console.error(err);
             showTyping(false);
             appendMessage('bot', 'Sorry, something went wrong.');
             disableInput(false);
             scrollToBottom();
-            console.error(err);
+        }
+    }
+
+    // ── send message ──
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const message = input.value.trim();
+        if (message) {
+            feedbackHandler(message);
         }
     });
+
   
     /**
      * 
@@ -170,8 +178,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // If options are provided, show them as clickable bubbles
-        if (Array.isArray(options) && options.length) {
-            showOptions(options);
+        if (Array.isArray(options) && options.length > 0 && who === 'bot') {
+            disableInput(true);
+            showOptions(options, feedbackHandler);
         } else {
             disableInput(false);
             input.focus();
