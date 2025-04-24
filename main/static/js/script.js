@@ -44,11 +44,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function showOptions(arr) {
         optionsEl.innerHTML = '';
         arr.forEach(text => {
-        const btn = document.createElement('div');
-        btn.classList.add('option-bubble');
-        btn.textContent = text;
-        btn.addEventListener('click', () => handleSelection(text));
-        optionsEl.appendChild(btn);
+            const btn = document.createElement('div');
+            btn.classList.add('option-bubble');
+            btn.textContent = text;
+            btn.addEventListener('click', () => handleSelection(text));
+            optionsEl.appendChild(btn);
         });
         optionsEl.style.display = 'flex';
     }
@@ -58,23 +58,20 @@ document.addEventListener('DOMContentLoaded', () => {
         optionsEl.innerHTML = '';
     }
 
-    // OPTION 1: user picks a bubble 
+    /**
+     * 
+     * @param {string} choice 
+     * @description: handle the selection of the user from the options provided by the bot.
+     * This function sends the selected option to the backend and receives a response.
+     **/
     async function handleSelection(choice) {
         appendMessage('user', choice);
         scrollToBottom();
         clearOptions();
-
-        // if free‑flow, show text input and bail
-        if (choice === 'Free Flow') {
-            disableInput(false);
-            input.focus();
-            return;
-        }
-
-        // guided path → send to backend
         showTyping(true);
+
         try {
-            const res = await fetch('/', {
+            const res = await fetch('set-choice/', {
                 method: 'POST',
                 headers: {
                 'Content-Type': 'application/json',
@@ -84,16 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await res.json();
             showTyping(false);
-            appendMessage('bot', data.reply);
+            appendMessage('bot', data.message, data.options);
             scrollToBottom();
-
-            // if backend returns more options:
-            if (Array.isArray(data.options) && data.options.length) {
-                showOptions(data.options);
-            } else {
-                disableInput(false);
-                input.focus();
-            }
 
         } catch (err) {
             showTyping(false);
@@ -143,14 +132,50 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
   
-    function appendMessage(who, text) {
-        const msgEl = document.createElement('div');
-        msgEl.classList.add('message', who);
-        msgEl.innerHTML = `
-            <div class="bubble px-4 py-2 ${who === 'user' ? 'text-end' : ''}">
-                ${text}
-            </div>`;
-        chatMsg.appendChild(msgEl);
+    /**
+     * 
+     * @param {string} who 
+     * @param {string|string[]} text 
+     * @param {string[]} options 
+     * @description: Appends a message (or messages) to the chat interface, and optionally displays selectable options.
+     */
+    function appendMessage(who, text, options) {
+
+        // Check if the message is a string or a list of strings
+        if (typeof text === 'string') {
+            const msgEl = document.createElement('div');
+            msgEl.classList.add('message', who);
+            msgEl.innerHTML = `
+                <div class="bubble px-4 py-2 ${who === 'user' ? 'text-end' : ''}">
+                    ${text}
+                </div>`;
+            chatMsg.appendChild(msgEl);
+
+        } else if (Array.isArray(text)) {
+            text.forEach(t => {
+                const msgEl = document.createElement('div');
+                // for all messages except the last one, add a class of 'message'
+                if (text.indexOf(t) !== text.length - 1) {
+                    msgEl.classList.add('message', who, 'm-0');
+                } else {
+                    msgEl.classList.add('message', who);
+                }
+
+                msgEl.innerHTML = `
+                    <div class="bubble px-4 py-2 ${who === 'user' ? 'text-end' : ''}">
+                        ${t}
+                    </div>`;
+                chatMsg.appendChild(msgEl);
+            });
+        }
+
+        // If options are provided, show them as clickable bubbles
+        if (Array.isArray(options) && options.length) {
+            showOptions(options);
+        } else {
+            disableInput(false);
+            input.focus();
+        }
     }
   
     function scrollToBottom() {

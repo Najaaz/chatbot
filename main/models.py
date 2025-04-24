@@ -85,6 +85,17 @@ class Product (models.Model):
     safety_perception = models.DecimalField(max_digits=3, decimal_places=1, default=0.0, validators=[MinValueValidator(0.0), MaxValueValidator(10)])  # e.g. 9.5
     seasonal_use = models.JSONField(default=list) # e.g. [1,4,5] (1=Jan, 2=Feb, ... 12=Dec)
 
+    # — LLM inferred attributes —
+    sensitivity_level = models.DecimalField(max_digits=3, decimal_places=1, default=0.0, validators=[MinValueValidator(0.0), MaxValueValidator(10)])  # e.g. 5.0
+    waterproof = models.BooleanField(default=False)  # e.g. True/False
+    portability = models.DecimalField(max_digits=3, decimal_places=1, default=0.0, validators=[MinValueValidator(0.0), MaxValueValidator(10)])  # e.g. 6.0
+    design_features = models.JSONField(blank=True, null=True)  # e.g. ["Ergonomic", "Compact"]
+    package_quantity = models.PositiveIntegerField(default=1)  # e.g. 10 (number of items in a package)
+    usage_type = models.CharField(max_length=50, blank=True)  # e.g. "Everyday Use", "Occasional Use"
+    material_origin = models.CharField(max_length=50, blank=True)  # e.g. "Organic Cotton", "Synthetic"
+    chemical_safety = models.CharField(max_length=50, blank=True)  # e.g. "Non-toxic", "Treated"
+
+
     objects = ProductManager()
 
     def __str__(self) -> str:
