@@ -95,13 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function feedbackHandler(message) {
-        if (["reset", "clear", "restart", "start over", "new", "new chat", "new conversation"].includes(message.toLowerCase())) {
-            console.log('resetting conversation...');
-            appendMessage('user', message);
-            appendMessage('bot', "Sure! Starting a new conversation.");
-            startConversation();
-            return;
-        }
         appendMessage('user', message);
         scrollToBottom();
         clearOptions();
@@ -127,6 +120,14 @@ document.addEventListener('DOMContentLoaded', () => {
             appendMessage('bot', 'Sorry, something went wrong.');
             disableInput(false);
             scrollToBottom();
+        }
+
+        if (["reset", "clear", "restart", "start over", "new", "new chat", "new conversation"].includes(message.toLowerCase())) {
+            console.log('resetting conversation...');
+            appendMessage('user', message);
+            appendMessage('bot', "Sure! Starting a new conversation.");
+            startConversation();
+            return;
         }
     }
 
