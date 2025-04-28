@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── show clickable bubbles ──
     function showOptions(arr, functionName) {
         optionsEl.innerHTML = '';
+        console.log(arr);
         arr.forEach(text => {
             const btn = document.createElement('div');
             btn.classList.add('option-bubble');
@@ -82,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await res.json();
             showTyping(false);
-            appendMessage('bot', data.response, data.options);
+            appendMessage('bot', data.response, data.options, data.results);
             scrollToBottom();
 
         } catch (err) {
@@ -111,13 +112,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await res.json();
             showTyping(false);
-            appendMessage('bot', data.response, data.options);
+            console.log(data);
+            appendMessage('bot', data.response, data.options, data.results);
             scrollToBottom();
 
         } catch (err) {
             console.error(err);
             showTyping(false);
-            appendMessage('bot', 'Sorry, something went wrong.');
+            appendMessage('bot', 'Sorry, we are unable to process your request at the moment.');
             disableInput(false);
             scrollToBottom();
         }
@@ -148,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {string[]} options 
      * @description: Appends a message (or messages) to the chat interface, and optionally displays selectable options.
      */
-    function appendMessage(who, text, options) {
+    function appendMessage(who, text, options, results) {
 
         // Check if the message is a string or a list of strings
         if (typeof text === 'string') {
@@ -159,7 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${text}
                 </div>`;
             chatMsg.appendChild(msgEl);
-
         } else if (Array.isArray(text)) {
             text.forEach(t => {
                 const msgEl = document.createElement('div');
@@ -178,6 +179,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        // If results are provided, show them as clickable cards
+        if (Array.isArray(results) && results.length > 0 && who === 'bot') {
+            showResults(results);
+        }
+
         // If options are provided, show them as clickable bubbles
         if (Array.isArray(options) && options.length > 0 && who === 'bot') {
             disableInput(true);
@@ -186,6 +192,25 @@ document.addEventListener('DOMContentLoaded', () => {
             disableInput(false);
             input.focus();
         }
+    }
+
+    function showResults(results) {
+        const resultsEl = document.createElement('div');
+        resultsEl.classList.add('d-flex', 'flex-nowrap', 'gap-3', 'overflow-auto', 'pb-1', 'mb-2');
+        results.forEach(result => {
+            console.log(result);
+            const card = document.createElement('div');
+            card.classList.add('card', 'product-card', 'shadow-sm');
+            card.innerHTML = `
+                <img src="${result.image}" class="card-img-top" alt="${result.title}">
+                <div class="card-body p-2">
+                    <h6 class="card-title mb-1 text-truncate">${result.title}</h6>
+                    <p class="card-text text-danger fw-bold mb-1">Rs. ${result.current_price}</p>
+                    <a href="${result.link}" target="_blank" class="btn btn-sm btn-pink w-100">View Product</a>
+                </div>`;
+            resultsEl.appendChild(card);
+        });
+        chatMsg.appendChild(resultsEl);
     }
   
     function scrollToBottom() {

@@ -11,6 +11,7 @@ age_suitability_choices = (
     ('6-8 years', '6-8 years'),
     ('9-12 years', '9-12 years'),
     ('mothers', 'mothers'),
+    ('all ages', 'all ages'),
 )
 
 gender_choices = (

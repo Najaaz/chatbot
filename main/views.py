@@ -11,7 +11,7 @@ GUIDED_QUESTIONS = [
         "question": "Who are you shopping for?",
         "options": [
             "Mothers",
-            "Your Baby",
+            "My Baby",
             "Gift for a Baby",
             "Gift for a Mother",
             "Other",
@@ -26,7 +26,6 @@ GUIDED_QUESTIONS = [
             "Rs. 10,000 - Rs. 25,000",
             "Rs. 25,000 - Rs. 50,000",
             "Rs. 50,000+",
-            "No Budget",
             "Start Over"
         ],
     },
@@ -45,7 +44,7 @@ GUIDED_QUESTIONS = [
 
 SYSTEM_MESSAGE = {
     "role": "system",
-    "content": """You are a smart, friendly, and highly capable shopping assistant for Kiddoz — a Sri Lankan e-commerce store specializing in products for babies, children (0 months to 12 years), and mothers. Your job is to help users find the best products through engaging, natural conversations that adapt to their needs.
+    "content": """You are a smart, friendly, and highly capable shopping assistant for Kiddoz — a Sri Lankan e-commerce store specializing in products for babies, children (0 months to 12 years), mothers and all ages. Your job is to help users find the best products through engaging, natural conversations that adapt to their needs.
 
     You work in two modes: 
     1. Guided mode: The user answers a sequence of structured questions (shopping target, budget, and product type). 
@@ -53,9 +52,23 @@ SYSTEM_MESSAGE = {
 
     You must generate only **one ideal product profile** per user query — not a list of products. You are not responsible for picking a real product. Instead, you describe what the ideal product should look like, based on user needs.
 
+    🛑 Important Rules for Guided Mode:
+    - You do NOT need to ask "Who are you shopping for?" or "What is your budget?".
+    - You must only ask: **"Which category of products are you interested in?"**
+    - Provide the following available categories as options:
+    - Clothing
+    - Toys
+    - Diapers
+    - Maternity
+    - Skin Care
+    - Schooling
+    - Gear
+    - Activity
+    - When offering these multiple-choice options, respond with a JSON object named **`options`** with whatever options are appropriate.
+    - If there is no budget given by the user, provide the budget as Rs. 9,000,000
 
     In your recommendations, you MUST use the following inferred labels to ensure safety, relevance, and personalization:
-    • age_suitability — one of: '0-5 months', '6-11 months', '1-1.5 years', '1.6-2 years', '3-5 years', '6-8 years', '9-12 years', 'mothers'
+    • age_suitability — one of: '0-5 months', '6-11 months', '1-1.5 years', '1.6-2 years', '3-5 years', '6-8 years', '9-12 years', 'mothers', 'all ages'
     • gender — 'Male', 'Female', or 'Unisex'
     • maximum_price — number (in Sri Lankan rupees) 
     • giftability — 0–10 scale — How suitable the item is as a gift
@@ -79,7 +92,8 @@ SYSTEM_MESSAGE = {
     • brand — String — Brand name if known, otherwise null
 
 
-    🟢 When recommending products, always respond with a **list of product objects in JSON format**, which only includes all the above attributes for each item.
+    🟢 When recommending products, always respond with a **list of attribute objects in JSON format**, which only includes all the above attributes for each item with the title as "results". I will show several products to the user - make it plural. 
+
     ❗ Do not reply with plain text when recommending — only structured JSON output for products.
 
     🟠 When asking the user questions (such as during guided flow), ask **only one simple and direct question at a time**.
@@ -89,8 +103,12 @@ SYSTEM_MESSAGE = {
     If the user says "start over" or "reset", politely reset the conversation.
 
     When responding:
-    - If you send one message, use a plain string.
-    - If you send multiple messages, respond with a list of strings in a single response.
+    - Only respond in a json format
+    - If you send one message, use a plain string with the title "response". 
+    - If you send multiple messages, respond with a list of strings in a single response with the title "response"
+    - If there are restricted choices you expect the user to respond to have a list of strings with the title "options". Always have an option called "start over".
+    - When sending results always send it in a JSON format with the title "results". Always 
+    - Every message MUST have a "response".
 
     Your goal is to be helpful, safe, fun and direct — like a helpful friend guiding someone through a gift shop. 
     """
@@ -98,7 +116,7 @@ SYSTEM_MESSAGE = {
 
 
 # Initialize OpenAI API client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))   
 
 # Create your views here.
 def home(request):
@@ -153,14 +171,35 @@ def chat(request):
         is_free_flow = request.session.get("is_free_flow", False)
         if is_free_flow:
             # Handle free flow chat logic here
-            response = {"success": True, "response": "This is a free flow response."}
+            response = handle_free_flow(request, message)
         else:
             # Handle guided questions logic here
             response = handle_guided_questions(request, message)
-        print(request.session["messages"], request.session['is_free_flow'], request.session["question_counter"])
+        # print(request.session["messages"], request.session['is_free_flow'], request.session["question_counter"])
         return JsonResponse(response)
     except json.JSONDecodeError:
         return HttpResponse(status=400, content="Invalid JSON format")
+    
+    
+def handle_free_flow(request, message):
+    response = "This is a free flow responeeeeeeeeeeeeeeeeeeee."
+    add_message(request, "assistant", response)
+    options = ["check1", "check2", "start over"]  # or some options if needed
+    results = [
+                {"title":"product69",
+                "image":"https://cdn.kiddoz.lk/media/catalog/product/d/j/djdgnf_nffnbbfndbhdbndb.webp?width=600&height=600&store=en&image-type=image",
+                "current_price":"1000",
+                "link":"https://example.com/product1"},
+                {"title":"product59",
+                "image":"https://cdn.kiddoz.lk/media/catalog/product/d/j/djdgnf_nffnbbfndbhdbndb.webp?width=600&height=600&store=en&image-type=image",
+                "current_price":"10000",
+                "link":"https://example.com/product2"},
+                {"title":"product53 adxc is movign  at aj",
+                "image":"https://cdn.kiddoz.lk/media/catalog/product/d/j/djdgnf_nffnbbfndbhdbndb.webp?width=600&height=600&store=en&image-type=image",
+                "current_price":"1000230",
+                "link":"https://example.com/product4"},
+            ]
+    return {"success": True, "response": response, "options": options, "results": results}
     
     
 def handle_guided_questions(request, message):
