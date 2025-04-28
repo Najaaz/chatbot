@@ -44,7 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── show clickable bubbles ──
     function showOptions(arr, functionName) {
         optionsEl.innerHTML = '';
-        console.log(arr);
         arr.forEach(text => {
             const btn = document.createElement('div');
             btn.classList.add('option-bubble');
@@ -112,7 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await res.json();
             showTyping(false);
-            console.log(data);
             appendMessage('bot', data.response, data.options, data.results);
             scrollToBottom();
 
@@ -202,11 +200,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.classList.add('card', 'product-card', 'shadow-sm');
             card.innerHTML = `
-                <img src="${result.image}" class="card-img-top" alt="${result.title}">
+                <img src="${result.image}" class="card-img-top" alt="${result.name}">
                 <div class="card-body p-2">
-                    <h6 class="card-title mb-1 text-truncate">${result.title}</h6>
+                    <h6 class="card-title mb-1 text-truncate">${result.name}</h6>
                     <p class="card-text text-danger fw-bold mb-1">Rs. ${result.current_price}</p>
-                    <a href="${result.link}" target="_blank" class="btn btn-sm btn-pink w-100">View Product</a>
+                    <a href="${result.url}" target="_blank" class="btn btn-sm btn-pink w-100">View Product</a>
                 </div>`;
             resultsEl.appendChild(card);
         });

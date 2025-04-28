@@ -4,6 +4,7 @@ from django.http import HttpResponse
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from openai import OpenAI
+from .models import Product
 
 
 GUIDED_QUESTIONS = [
@@ -179,27 +180,65 @@ def chat(request):
         return JsonResponse(response)
     except json.JSONDecodeError:
         return HttpResponse(status=400, content="Invalid JSON format")
-    
+
     
 def handle_free_flow(request, message):
-    response = "This is a free flow responeeeeeeeeeeeeeeeeeeee."
-    add_message(request, "assistant", response)
-    options = ["check1", "check2", "start over"]  # or some options if needed
-    results = [
-                {"title":"product69",
-                "image":"https://cdn.kiddoz.lk/media/catalog/product/d/j/djdgnf_nffnbbfndbhdbndb.webp?width=600&height=600&store=en&image-type=image",
-                "current_price":"1000",
-                "link":"https://example.com/product1"},
-                {"title":"product59",
-                "image":"https://cdn.kiddoz.lk/media/catalog/product/d/j/djdgnf_nffnbbfndbhdbndb.webp?width=600&height=600&store=en&image-type=image",
-                "current_price":"10000",
-                "link":"https://example.com/product2"},
-                {"title":"product53 adxc is movign  at aj",
-                "image":"https://cdn.kiddoz.lk/media/catalog/product/d/j/djdgnf_nffnbbfndbhdbndb.webp?width=600&height=600&store=en&image-type=image",
-                "current_price":"1000230",
-                "link":"https://example.com/product4"},
-            ]
-    return {"success": True, "response": response, "options": options, "results": results}
+    response = {
+        "results": {
+            "age_suitability": "3-5 years",
+            "gender": "Male",
+            "maximum_price": 9000000,
+            "giftability": 10,
+            "educational_value": 7,
+            "durability": 9,
+            "value_for_money": 8,
+            "safety_perception": 9,
+            "seasonal_use": [
+                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
+            ],
+            "sensitivity_level": 4,
+            "waterproof": True,
+            "portability": 7,
+            "design_features": [
+                "colorful",
+                "easy-grip",
+                "child-safe edges",
+                "lightweight"
+            ],
+            "package_quantity": 1,
+            "usage_type": "active play and physical development",
+            "material_origin": "high-quality plastic",
+            "chemical_safety": "non-toxic",
+            "size": None,
+            "weight_range": None,
+            "count": None,
+            "color_options": [
+                "Blue",
+                "Red",
+                "Green"
+            ],
+            "brand": None
+        },
+            "response": "Here is an ideal activity gift for your nephew!"
+    }
+    
+    output = {
+        "success": True,
+        "response": response.get("response"),
+    }
+
+    add_message(request, "assistant", response.get("response") , response.get("results"))
+
+    # Need to query for products with the above attributes
+    if response.get("results"):
+        # Query the database for products matching the attributes
+        products = query_products(response.get("results"))
+        output["results"] = products
+
+    if response.get("options"):
+        output["output"] = response.get("output")
+    
+    return output
     
     
 def handle_guided_questions(request, message):
@@ -217,6 +256,32 @@ def handle_guided_questions(request, message):
         add_message(request, "assistant", response)
         return {"success": True, "response": response}
     
+    
+def query_products(attributes):
+    # This function should query the database for products matching the given attributes
+    # For now, we will just return a placeholder response
+    products = Product.objects.filter(
+        gender=attributes.get("gender")
+    ).values('url', 'name', 'current_price', 'image_urls')[:5]
+    products = list(products)  # Convert QuerySet to list for JSON serialization
+
+    for product in products:
+        # Make sure image_urls is a list
+        image_list = []
+        if isinstance(product['image_urls'], str):
+            try:
+                image_list = json.loads(product['image_urls'])
+            except json.JSONDecodeError:
+                image_list = []
+        elif isinstance(product['image_urls'], list):
+            image_list = product['image_urls']
+
+        # Add new key 'image' with the first image if available
+        product['image'] = image_list[0] if image_list else "/static/images/logo.png"
+
+    print(products)
+    return products  # Return the first 5 products for demonstration
+
 
 def reset_chat(request):
     request.session["is_free_flow"] = False
@@ -224,8 +289,10 @@ def reset_chat(request):
     request.session["messages"] = [SYSTEM_MESSAGE]
 
 
-def add_message(request, role, content):
+def add_message(request, role, content, results=None):
     messages = request.session.get("messages", [])
     messages.append({"role": role, "content": content})
+    if results:
+        messages.append({"role": "assistant", "content": results})
     request.session["messages"] = messages
 
