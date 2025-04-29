@@ -81,6 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ message: choice })
             });
             const data = await res.json();
+            console.log(data);
             showTyping(false);
             appendMessage('bot', data.response, data.options, data.results);
             scrollToBottom();
@@ -96,9 +97,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function feedbackHandler(message) {
         appendMessage('user', message);
+        showTyping(true);
         scrollToBottom();
         clearOptions();
-        showTyping(true);
 
         try {
             const res = await fetch('chat/', {
@@ -110,6 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ message: message })
             });
             const data = await res.json();
+            console.log(data);
             showTyping(false);
             appendMessage('bot', data.response, data.options, data.results);
             scrollToBottom();
@@ -196,7 +198,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const resultsEl = document.createElement('div');
         resultsEl.classList.add('d-flex', 'flex-nowrap', 'gap-3', 'overflow-auto', 'pb-1', 'mb-2');
         results.forEach(result => {
-            console.log(result);
             const card = document.createElement('div');
             card.classList.add('card', 'product-card', 'shadow-sm');
             card.innerHTML = `

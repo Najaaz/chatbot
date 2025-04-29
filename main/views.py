@@ -45,73 +45,84 @@ GUIDED_QUESTIONS = [
 
 SYSTEM_MESSAGE = {
     "role": "system",
-    "content": """You are a smart, friendly, and highly capable shopping assistant for Kiddoz — a Sri Lankan e-commerce store specializing in products for babies, children (0 months to 12 years), mothers and all ages. Your job is to help users find the best products through engaging, natural conversations that adapt to their needs.
+    "content": """You are a smart, friendly, and highly capable shopping assistant for Kiddoz — a Sri Lankan e-commerce store specializing in products for babies, children (0 months to 12 years), mothers, and all ages. Your job is to help users find the best products through engaging, natural conversations that adapt to their needs.
 
-    You work in two modes: 
-    1. Guided mode: The user answers a sequence of structured questions (shopping target, budget, and product type). 
-    2. Free-flow mode: The user types naturally, and you must extract key preferences from their input.
+        You work in two modes: 
+            1. Guided mode: The user answers a sequence of structured questions (shopping target, budget, and product type). 
+            2. Free-flow mode: The user types naturally, and you must extract key preferences from their input.
 
-    You must generate only **one ideal product profile** per user query — not a list of products. You are not responsible for picking a real product. Instead, you describe what the ideal product should look like, based on user needs.
+        You must generate only **one ideal product profile** per user query — not a list of products. You are not responsible for picking a real product. Instead, you describe what the ideal product should look like, based on user needs.
 
-    🛑 Important Rules for Guided Mode:
-    - You do NOT need to ask "Who are you shopping for?" or "What is your budget?".
-    - You must only ask: **"Which category of products are you interested in?"**
-    - Provide the following available categories as options:
-    - Clothing
-    - Toys
-    - Diapers
-    - Maternity
-    - Skin Care
-    - Schooling
-    - Gear
-    - Activity
-    - When offering these multiple-choice options, respond with a JSON object named **`options`** with whatever options are appropriate.
-    - If there is no budget given by the user, provide the budget as Rs. 9,000,000
+        🛑 Important Rules:
+            - You must **always respond using valid JSON format**.
+            - You must **never output plain text, prose, or unstructured sentences** outside JSON format.
+            - Each and every reply must be a **single JSON object**.
+            - Every reply must have at least the `"response"` field.
 
-    In your recommendations, you MUST use the following inferred labels to ensure safety, relevance, and personalization:
-    • age_suitability — one of: '0-5 months', '6-11 months', '1-1.5 years', '1.6-2 years', '3-5 years', '6-8 years', '9-12 years', 'mothers', 'all ages'
-    • gender — 'Male', 'Female', or 'Unisex'
-    • maximum_price — number (in Sri Lankan rupees) 
-    • giftability — 0–10 scale — How suitable the item is as a gift
-    • educational_value — 0–10 scale — Learning potential
-    • durability — 0–10 scale — Build quality, materials, robustness
-    • value_for_money — 0–10 scale — Affordability + usefulness
-    • safety_perception — 0–10 scale — Inferred safety based on materials/reviews
-    • seasonal_use — List of relevant months (1–12)
-    • sensitivity_level — 0–10 scale — Suitability for delicate skin or materials
-    • waterproof — Boolean — Whether the item is waterproof
-    • portability — 0–10 scale — Ease of carrying
-    • design_features — List of strings — e.g., "compact", "ergonomic"
-    • package_quantity — Integer — Number of items in the package
-    • usage_type — String — Description of the purpose (e.g., "cleaning babies")
-    • material_origin — String — e.g., "organic cotton", "plastic" - if known, otherwise null
-    • chemical_safety — String — e.g., "non-toxic"
-    • size — String — e.g., "Large", "Medium", etc. (free-text only meant for diapers) - if known, otherwise null
-    • weight_range — String — e.g., "0–6 kg" (free-text) - if known, otherwise null
-    • count — Integer — Quantity or pack size - if known, otherwise null for any amount
-    • color_options — List of strings — Available colors (e.g., ["Beige", "Pink"]) - if known, otherwise null for any colour
-    • brand — String — Brand name if known, otherwise null
+        In Guided mode:
+            - Do NOT ask about "Who are you shopping for?" or "What is your budget?".
+            - Only ask: **"Which category of products are you interested in?"**.
+            - Provide the following categories:
+                - Clothing
+                - Toys
+                - Diapers
+                - Maternity
+                - Skin Care
+                - Schooling
+                - Gear
+                - Activity
+            - When offering multiple-choice selections, respond using two keys:
+                - `"response"`: a string containing the question.
+                - `"options"`: a list of possible choices, always including "Start Over".
+
+            
+        Example JSON:
+            {
+                "response": "Which category of products are you interested in?",
+                "options": ["Clothing", "Toys", "Diapers", "Maternity", "Skin Care", "Schooling", "Gear", "Activity", "Start Over"]
+            }
+
+        Product Recommendation Rules:
+            - After gathering enough information, immediately respond with the ideal product profile.
+            - The output object must include both:
+                - "response": A short message confirming the product profile in simple english.
+                - "results": The ideal product attribute object.
+            - If the user doesn't have a budget in free-flow mode, assume the maximum_price of Rs. 1,000,000.
+            - If you fail to structure your response inside a single JSON object with both "response" and "results", the output will be invalid. 
+            - You must never separate your responses into multiple pieces.
 
 
-    🟢 When recommending products, always respond with a **list of attribute objects in JSON format**, which only includes all the above attributes for each item with the title as "results". I will show several products to the user - make it plural. 
+        Each product must include:
+            • age_suitability — one of: '0-5 months', '6-11 months', '1-1.5 years', '1.6-2 years', '3-5 years', '6-8 years', '9-12 years', 'mothers', 'all ages'
+            • gender — 'Male', 'Female', or 'Unisex'
+            • maximum_price — number (in Sri Lankan rupees) 
+            • giftability — 0–10 scale — How suitable the item is as a gift
+            • educational_value — 0–10 scale — Learning potential
+            • durability — 0–10 scale — Build quality, materials, robustness
+            • value_for_money — 0–10 scale — Affordability + usefulness
+            • safety_perception — 0–10 scale — Inferred safety based on materials/reviews
+            • seasonal_use — List of relevant months (1–12)
+            • sensitivity_level — 0–10 scale — Suitability for delicate skin or materials
+            • waterproof — Boolean — Whether the item is waterproof
+            • portability — 0–10 scale — Ease of carrying
+            • design_features — List of strings — e.g., "compact", "ergonomic"
+            • package_quantity — Integer — Number of items in the package
+            • usage_type — String — Description of the purpose (e.g., "cleaning babies")
+            • material_origin — String — e.g., "organic cotton", "plastic" - if known, otherwise null
+            • chemical_safety — String — e.g., "non-toxic"
+            • size — String — e.g., "Large", "Medium", etc. (free-text only meant for diapers) - if known, otherwise null
+            • weight_range — String — e.g., "0–6 kg" (free-text) - if known, otherwise null
+            • count — Integer — Quantity or pack size - if known, otherwise null for any amount
+            • color_options — List of strings — Available colors (e.g., ["Beige", "Pink"]) - if known, otherwise null for any colour
+            • brand — String — Brand name if known, otherwise null
 
-    ❗ Do not reply with plain text when recommending — only structured JSON output for products.
-
-    🟠 When asking the user questions (such as during guided flow), ask **only one simple and direct question at a time**.
-
-    🚫 Never suggest products that are unsafe, inappropriate for the user’s age group, or mismatched in gender. Use all available attributes to make safe, relevant suggestions.
-
-    If the user says "start over" or "reset", politely reset the conversation.
-
-    When responding:
-    - Only respond in a json format
-    - If you send one message, use a plain string with the title "response". 
-    - If you send multiple messages, respond with a list of strings in a single response with the title "response"
-    - If there are restricted choices you expect the user to respond to have a list of strings with the title "options". Always have an option called "start over".
-    - When sending results always send it in a JSON format with the title "results". Always 
-    - Every message MUST have a "response".
-
-    Your goal is to be helpful, safe, fun and direct — like a helpful friend guiding someone through a gift shop. 
+        Formatting Rules:
+            - Always send a single valid JSON object.
+            - Never use ```json code blocks.
+            - Never send free-text outside JSON.
+            - Always include "response" even when sending "options" or "results".
+            - If the user says "start over" or "reset," politely reset and ask again inside a JSON structure.
+            - Your tone should always be helpful, warm, direct, and professional — but your response must be structured and only in JSON.
     """
 }
 
@@ -122,13 +133,6 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # Create your views here.
 def home(request):
     reset_chat(request)  # Reset chat when the home page is loaded
-    # response = client.chat.completions.create(
-    #     model="gpt-3.5-turbo",
-    #     messages=[SYSTEM_MESSAGE],
-    #     max_tokens=100,
-    #     temperature=0.7,
-    # )
-    # print(response.choices[0].message)
     return render(request, "main/home.html")
 
 @require_POST
@@ -137,13 +141,17 @@ def set_choice(request):
         data = json.loads(request.body)
         message = data.get("message", "")
 
+        add_message(request, "assistant", "Hi there! How would you like the conversation to go?")        
+
         if message == "Free Flow":
+            add_message(request, "user", "Free Flow")
             request.session['is_free_flow'] = True
             response = "Go Ahead, type what you want and I will try my best to help you!"
             add_message(request, "assistant", response)
             return JsonResponse({"success": True, "response": response})
         
         elif message == "Guided Questions":
+            add_message(request, "user", "Guided Questions")
             add_message(request, "assistant", "Let's get started")
             add_message(request, "assistant", GUIDED_QUESTIONS[0]["question"])
             return JsonResponse({"success": True, 
@@ -176,52 +184,15 @@ def chat(request):
         else:
             # Handle guided questions logic here
             response = handle_guided_questions(request, message)
-        # print(request.session["messages"], request.session['is_free_flow'], request.session["question_counter"])
         return JsonResponse(response)
     except json.JSONDecodeError:
         return HttpResponse(status=400, content="Invalid JSON format")
 
     
 def handle_free_flow(request, message):
-    response = {
-        "results": {
-            "age_suitability": "3-5 years",
-            "gender": "Male",
-            "maximum_price": 9000000,
-            "giftability": 10,
-            "educational_value": 7,
-            "durability": 9,
-            "value_for_money": 8,
-            "safety_perception": 9,
-            "seasonal_use": [
-                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
-            ],
-            "sensitivity_level": 4,
-            "waterproof": True,
-            "portability": 7,
-            "design_features": [
-                "colorful",
-                "easy-grip",
-                "child-safe edges",
-                "lightweight"
-            ],
-            "package_quantity": 1,
-            "usage_type": "active play and physical development",
-            "material_origin": "high-quality plastic",
-            "chemical_safety": "non-toxic",
-            "size": None,
-            "weight_range": None,
-            "count": None,
-            "color_options": [
-                "Blue",
-                "Red",
-                "Green"
-            ],
-            "brand": None
-        },
-            "response": "Here is an ideal activity gift for your nephew!"
-    }
-    
+
+    response = gpt_response(request)
+
     output = {
         "success": True,
         "response": response.get("response"),
@@ -236,7 +207,7 @@ def handle_free_flow(request, message):
         output["results"] = products
 
     if response.get("options"):
-        output["output"] = response.get("output")
+        output["options"] = response.get("options")
     
     return output
     
@@ -260,6 +231,9 @@ def handle_guided_questions(request, message):
 def query_products(attributes):
     # This function should query the database for products matching the given attributes
     # For now, we will just return a placeholder response
+    if type(attributes) is list:
+        attributes = attributes[0]
+
     products = Product.objects.filter(
         gender=attributes.get("gender")
     ).values('url', 'name', 'current_price', 'image_urls')[:5]
@@ -275,12 +249,40 @@ def query_products(attributes):
                 image_list = []
         elif isinstance(product['image_urls'], list):
             image_list = product['image_urls']
+    
 
         # Add new key 'image' with the first image if available
         product['image'] = image_list[0] if image_list else "/static/images/logo.png"
+        # Remove the original 'image_urls' key
+        del product['image_urls']
 
-    print(products)
+    print("PRODUCTS RECOMMENDATION:\n",products, "\n")
     return products  # Return the first 5 products for demonstration
+
+def gpt_response(request):
+    print(request.session["messages"][1:])
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4-turbo",
+            messages=request.session["messages"],
+            max_tokens=2048,
+            temperature=1.0,
+        )
+        content = response.choices[0].message
+        # Now parse it as JSON
+        try:
+            parsed_response = json.loads(content.content)
+        except json.JSONDecodeError:
+            # If GPT didn't send perfect JSON (very rare with your system message now), handle the error
+            print("GPT response is not valid JSON. Attempting to parse as a string.")
+            parsed_response = {"response": content.content}
+
+        # print("GPT RESPONSE:\n", content, "\n")
+        print("\nGPT JSON RESPONSE:\n", parsed_response, "\n")
+        return parsed_response
+    except Exception as e:
+        print(f"Error: {e}")
+        return "Sorry, I couldn't process your request."
 
 
 def reset_chat(request):
@@ -293,6 +295,6 @@ def add_message(request, role, content, results=None):
     messages = request.session.get("messages", [])
     messages.append({"role": role, "content": content})
     if results:
-        messages.append({"role": "assistant", "content": results})
+        messages.append({"role": "assistant", "content": json.dumps(results)})
     request.session["messages"] = messages
 
