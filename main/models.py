@@ -15,9 +15,9 @@ age_suitability_choices = (
 )
 
 gender_choices = (
-    ('Male', 'Male'),
-    ('Female', 'Female'),
-    ('Unisex', 'Unisex'),
+    ('male', 'male'),
+    ('female', 'female'),
+    ('unisex', 'unisex'),
 )
 
 months = {
@@ -39,7 +39,7 @@ class Product (models.Model):
 
     # — core identifiers —
     url = models.URLField(unique=True)
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)
     brand = models.CharField(max_length=255, blank=True)
 
     # — taxonomy —
@@ -84,7 +84,7 @@ class Product (models.Model):
     durability = models.DecimalField(max_digits=3, decimal_places=1, default=0.0, validators=[MinValueValidator(0.0), MaxValueValidator(10)])  # e.g. 9.0
     value_for_money = models.DecimalField(max_digits=3, decimal_places=1, default=0.0, validators=[MinValueValidator(0.0), MaxValueValidator(10)])  # e.g. 8.0
     safety_perception = models.DecimalField(max_digits=3, decimal_places=1, default=0.0, validators=[MinValueValidator(0.0), MaxValueValidator(10)])  # e.g. 9.5
-    seasonal_use = models.JSONField(default=list) # e.g. [1,4,5] (1=Jan, 2=Feb, ... 12=Dec)
+    seasonal_use = models.JSONField(default=list, blank=True) # e.g. [1,4,5] (1=Jan, 2=Feb, ... 12=Dec)
 
     # — LLM inferred attributes —
     sensitivity_level = models.DecimalField(max_digits=3, decimal_places=1, default=0.0, validators=[MinValueValidator(0.0), MaxValueValidator(10)])  # e.g. 5.0
@@ -123,3 +123,10 @@ class Product (models.Model):
             raise ValidationError("seasonal_use must be a list of months.")
         if not all(isinstance(m, int) and 1 <= m <= 12 for m in self.seasonal_use):
             raise ValidationError("Each month in seasonal_use must be an integer between 1 and 12.")
+        
+        if self.age_suitability:
+            self.age_suitability = self.age_suitability.replace("–", "-").strip()
+        
+    def save(self, *args, **kwargs):
+        self.full_clean()  # Run all model validation
+        super().save(*args, **kwargs)

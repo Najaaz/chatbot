@@ -1,4 +1,4 @@
-import json, time, os
+import json, time, os, unicodedata
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.views.decorators.http import require_POST
@@ -96,22 +96,22 @@ SYSTEM_MESSAGE = {
             • age_suitability — one of: '0-5 months', '6-11 months', '1-1.5 years', '1.6-2 years', '3-5 years', '6-8 years', '9-12 years', 'mothers', 'all ages'
             • gender — 'Male', 'Female', or 'Unisex'
             • maximum_price — number (in Sri Lankan rupees) 
-            • giftability — 0–10 scale — How suitable the item is as a gift
-            • educational_value — 0–10 scale — Learning potential
-            • durability — 0–10 scale — Build quality, materials, robustness
-            • value_for_money — 0–10 scale — Affordability + usefulness
-            • safety_perception — 0–10 scale — Inferred safety based on materials/reviews
-            • seasonal_use — List of relevant months (1–12)
-            • sensitivity_level — 0–10 scale — Suitability for delicate skin or materials
+            • giftability — 0-10 scale — How suitable the item is as a gift
+            • educational_value — 0-10 scale — Learning potential
+            • durability — 0-10 scale — Build quality, materials, robustness
+            • value_for_money — 0-10 scale — Affordability + usefulness
+            • safety_perception — 0-10 scale — Inferred safety based on materials/reviews
+            • seasonal_use — List of relevant months (1-12)
+            • sensitivity_level — 0-10 scale — Suitability for delicate skin or materials
             • waterproof — Boolean — Whether the item is waterproof
-            • portability — 0–10 scale — Ease of carrying
+            • portability — 0-10 scale — Ease of carrying
             • design_features — List of strings — e.g., "compact", "ergonomic"
             • package_quantity — Integer — Number of items in the package
             • usage_type — String — Description of the purpose (e.g., "cleaning babies")
             • material_origin — String — e.g., "organic cotton", "plastic" - if known, otherwise null
             • chemical_safety — String — e.g., "non-toxic"
             • size — String — e.g., "Large", "Medium", etc. (free-text only meant for diapers) - if known, otherwise null
-            • weight_range — String — e.g., "0–6 kg" (free-text) - if known, otherwise null
+            • weight_range — String — e.g., "0-6 kg" (free-text) - if known, otherwise null
             • count — Integer — Quantity or pack size - if known, otherwise null for any amount
             • color_options — List of strings — Available colors (e.g., ["Beige", "Pink"]) - if known, otherwise null for any colour
             • brand — String — Brand name if known, otherwise null
@@ -192,7 +192,6 @@ def chat(request):
 def handle_free_flow(request, message):
 
     response = gpt_response(request)
-
     output = {
         "success": True,
         "response": response.get("response"),
@@ -203,7 +202,7 @@ def handle_free_flow(request, message):
     # Need to query for products with the above attributes
     if response.get("results"):
         # Query the database for products matching the attributes
-        products = query_products(response.get("results"))
+        products = query_products(response.get("results"))[:10]
         output["results"] = products
 
     if response.get("options"):
@@ -223,9 +222,23 @@ def handle_guided_questions(request, message):
         request.session["question_counter"] = question_counter
         return {"success": True, "response": response, "options": options}
     else:
-        response = "Thank you for answering the questions!"
-        add_message(request, "assistant", response)
-        return {"success": True, "response": response}
+        response = gpt_response(request)
+        add_message(request, "assistant", response.get("response") , response.get("results"))
+        output = {
+            "success": True,
+            "response": response.get("response"),
+        }
+
+        # Need to query for products with the above attributes
+        if response.get("results"):
+            # Query the database for products matching the attributes
+            products = query_products(response.get("results"))[:10]
+            output["results"] = products
+
+        if response.get("options"):
+            output["options"] = response.get("options")
+            
+        return output
     
     
 def query_products(attributes):
@@ -235,8 +248,11 @@ def query_products(attributes):
         attributes = attributes[0]
 
     products = Product.objects.filter(
-        gender=attributes.get("gender")
-    ).values('url', 'name', 'current_price', 'image_urls')[:5]
+        is_active=True,
+        original_price__lte=attributes.get("maximum_price"),
+        gender__iexact=attributes.get("gender"),
+        age_suitability__iexact=normalise_hyphenated_string(attributes.get("age_suitability"))
+    ).values('url', 'name', 'current_price', 'image_urls').distinct()[:5]
     products = list(products)  # Convert QuerySet to list for JSON serialization
 
     for product in products:
@@ -298,3 +314,8 @@ def add_message(request, role, content, results=None):
         messages.append({"role": "assistant", "content": json.dumps(results)})
     request.session["messages"] = messages
 
+def normalise_hyphenated_string(string):
+    """
+    Normalises a hyphenated string by replacing hyphens with dashes and removing spaces.
+    """
+    return unicodedata.normalize('NFKD', string).replace("–", "-").strip().lower()
