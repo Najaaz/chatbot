@@ -1,4 +1,5 @@
 import os, json
+import numpy as np
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import timezone
@@ -12,10 +13,10 @@ SYSTEM_MESSAGE = {
     "content": """
         You are a world-class algorithm that extracts structured information for product recommendation purposes in an e-commerce setting focused on children's and parenting products.
 
-        From the input product information — including fields such as url, name, brand, categories, description, specifications, images, etc. — extract and return only the following attributes using structured reasoning. Your output must be a raw JSON array, with each product represented as a JSON object using the url as its unique identifier.
+        From the input product information — including fields such as name, brand, categories, description, specifications, images, etc. — extract and return only the following attributes using structured reasoning. Your output must be a raw JSON array, with each product represented as a JSON object using the name as its unique identifier.
 
         For each product, infer the following:
-        - "url": Product's URL (string). Must be present.
+        - "name": Product's name (string). Must be present.
         - "age_suitability": One of ['0-5 months', '6-11 months', '1-1.5 years', '1.6-2 years', '3-5 years', '6-8 years', '9-12 years', 'mothers', 'all ages']
         - "gender": One of ['male', 'female', 'unisex']
         - "giftability": Integer from 0-10
@@ -34,7 +35,7 @@ SYSTEM_MESSAGE = {
         - "chemical_safety": String (e.g., "BPA-free", "non-toxic") if known; omit if unknown
 
         ✅ Rules:
-            - Always include the "url" field.
+            - Always include the "name" field.
             - Only output raw JSON — do not use Markdown formatting or code blocks.
             - If any value is unknown or not inferable, omit the key.
             - Return a JSON array with several product objects, one per product.
@@ -83,15 +84,18 @@ class Command(BaseCommand):
         self.stdout.write("Starting attribute inference for all products...")
 
         # Only choose the first 20 columns of the products table
-        fields = [field.name for field in Product._meta.fields if field.name != 'image_urls'][:19]
-        number_of_products = Product.objects.filter(is_active=True).count()
+        fields = [field.name for field in Product._meta.fields if field.name not in ['image_urls', 'id', 'url']][:17]
+        number_of_products = Product.objects.active().count()
+
+        self.stdout.write(f"Number of products to process: {number_of_products}")
+        self.stdout.write(f"Fields to process: {fields}\n")
 
         jump = 7
-        for i in range(33, number_of_products, jump):
+        for i in range(0, number_of_products, jump):
             end = min(i + jump, number_of_products)
             self.stdout.write(f"Processing products {i+1} to {end}...")
 
-            products = Product.objects.values(*fields).filter(is_active=True)[i:end]
+            products = Product.objects.active().values(*fields)[i:end]
             products = list(products)
 
             if not products:
@@ -101,20 +105,20 @@ class Command(BaseCommand):
             json_data = json.dumps(products, cls=DjangoJSONEncoder)
             self.stdout.write(f"JSON data: {json_data}") 
 
-            # inferred_attributes = []
+            # inferred_attributes =  []
             inferred_attributes = gpt_response(json_data)
             print("\nGPT OUTPUT:\n", inferred_attributes, "\n")
 
             # Update the product objects with the inferred attributes
             for product in inferred_attributes:
                 try:
-                    product_obj = Product.objects.get(url=product["url"])
+                    product_obj = Product.objects.defer("embedding").filter(name=product["name"]).first()
                     for key, value in product.items():
                         setattr(product_obj, key, value)
                     product_obj.save()
-                    self.stdout.write(self.style.SUCCESS(f"Updated product: {product['url']}"))
+                    self.stdout.write(self.style.SUCCESS(f"Updated product: {product['name']}"))
                 except Product.DoesNotExist:
-                    self.stdout.write(self.style.ERROR(f"Product not found: {product['url']}"))
+                    self.stdout.write(self.style.ERROR(f"Product not found: {product['name']}"))
                 except Exception as e:
                     self.stdout.write(self.style.ERROR(f"Error updating product: {e}"))
             # break

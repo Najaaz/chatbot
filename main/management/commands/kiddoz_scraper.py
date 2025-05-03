@@ -964,17 +964,17 @@ class StorageManager:
     def save_to_db(self, product_data):
         """Save product data to the database file."""
         try:
+            # URL is ignored since the unique constraint is on the name field
             product, created = Product.objects.update_or_create(
-            url=product_data['url'],
+            name=product_data['name'],
             defaults={
-                'name': product_data.get('name', ''),
                 'brand': product_data.get('brand', ''),
                 'categories': product_data.get('categories', []),
 
-                'current_price': Decimal(product_data.get('current_price', 0)),
-                'original_price': Decimal(product_data.get('original_price', 0)),
+                'current_price': Decimal(str(product_data.get('current_price', 0))),
+                'original_price': Decimal(str(product_data.get('original_price', 0))),
                 'has_discount': str(product_data.get('has_discount', '')).lower() == 'yes',
-                'discount_percentage': Decimal(product_data.get('discount_percentage', 0)),
+                'discount_percentage': Decimal(str(product_data.get('discount_percentage', 0))),
 
                 'in_stock': str(product_data.get('availability', '')).lower() == 'in stock',
                 'color_options': json.loads(product_data.get('color_options', '[]')),
@@ -986,7 +986,7 @@ class StorageManager:
                 'image_urls': json.loads(product_data.get('image_urls', '[]')),
                 'image_count': int(product_data.get('image_count', 0)),
 
-                'rating': Decimal(product_data['rating']) if product_data.get('rating') not in [None, 'Not found'] else None,
+                'rating': Decimal(str(product_data['rating'])) if product_data.get('rating') not in [None, 'Not found'] else None,
                 'size': product_data.get('size', ''),
                 'weight_range': product_data.get('weight_range', ''),
                 'count': int(product_data['count']) if product_data.get('count') not in [None, 'Not specified', 'Not found'] else None,

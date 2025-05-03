@@ -8,8 +8,8 @@ import logging
 
 logger = logging.getLogger("KiddozScraper")
 
-LIMIT = 2  # Set to 0 for no limit, or specify a number to limit the number of products scraped
-WORKERS = 1  # Number of threads to use for scraping
+LIMIT = 0  # Set to 0 for no limit, or specify a number to limit the number of products scraped
+WORKERS = 4  # Number of threads to use for scraping
 USE_SELENIUM = True  # Set to True if you want to use Selenium for JS-rendered pages
 
 

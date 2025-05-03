@@ -31,7 +31,7 @@ months = {
 class ProductManager(models.Manager):
 
     def active(self):
-        return self.get_queryset().filter(is_active=True)
+        return self.get_queryset().filter(is_active=True).defer('embedding')
 
 # Create your models here.
 class Product (models.Model):
@@ -132,5 +132,5 @@ class Product (models.Model):
             self.age_suitability = self.age_suitability.replace("–", "-").strip()
         
     def save(self, *args, **kwargs):
-        self.full_clean()  # Run all model validation
+        # self.full_clean()  # Run all model validation
         super().save(*args, **kwargs)
