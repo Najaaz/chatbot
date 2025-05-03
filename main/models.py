@@ -1,6 +1,8 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
+from pgvector.django import VectorField
+
 
 age_suitability_choices = (
     ('0-5 months', '0-5 months'),
@@ -49,7 +51,7 @@ class Product (models.Model):
     current_price = models.DecimalField(max_digits=10, decimal_places=2)
     original_price = models.DecimalField(max_digits=10, decimal_places=2)
     has_discount = models.BooleanField(default=False)
-    discount_percentage = models.DecimalField(max_digits=6, decimal_places=2)
+    discount_percentage = models.DecimalField(max_digits=6, decimal_places=2, validators=[MinValueValidator(0), MaxValueValidator(100)])
 
     # — stock & variant info —
     in_stock = models.BooleanField(default=True)                # e.g. “In stock” / “Out of stock”
@@ -78,7 +80,7 @@ class Product (models.Model):
 
     # — inferred attributes —
     age_suitability = models.CharField(max_length=20, choices=age_suitability_choices, default='0-5 months')  # e.g. "0-5 months"
-    gender = models.CharField(max_length=10, choices=gender_choices, default='Unisex')  # e.g. "Unisex"
+    gender = models.CharField(max_length=10, choices=gender_choices, default='unisex')  # e.g. "Unisex"
     giftability = models.DecimalField(max_digits=3, decimal_places=1, default=0.0, validators=[MinValueValidator(0.0), MaxValueValidator(10)])  # e.g. 8.5
     educational_value = models.DecimalField(max_digits=3, decimal_places=1, default=0.0, validators=[MinValueValidator(0.0), MaxValueValidator(10)])  # e.g. 7.5
     durability = models.DecimalField(max_digits=3, decimal_places=1, default=0.0, validators=[MinValueValidator(0.0), MaxValueValidator(10)])  # e.g. 9.0
@@ -95,6 +97,8 @@ class Product (models.Model):
     usage_type = models.CharField(max_length=50, blank=True)  # e.g. "Everyday Use", "Occasional Use"
     material_origin = models.CharField(max_length=50, blank=True)  # e.g. "Organic Cotton", "Synthetic"
     chemical_safety = models.CharField(max_length=50, blank=True)  # e.g. "Non-toxic", "Treated"
+
+    embedding = VectorField(dimensions=1536, null=True, blank=True)  # e.g. (vector representation of the product)  
 
 
     objects = ProductManager()

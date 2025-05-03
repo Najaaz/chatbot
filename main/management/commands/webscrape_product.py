@@ -8,8 +8,8 @@ import logging
 
 logger = logging.getLogger("KiddozScraper")
 
-LIMIT = 0  # Set to 0 for no limit, or specify a number to limit the number of products scraped
-WORKERS = 4  # Number of threads to use for scraping
+LIMIT = 2  # Set to 0 for no limit, or specify a number to limit the number of products scraped
+WORKERS = 1  # Number of threads to use for scraping
 USE_SELENIUM = True  # Set to True if you want to use Selenium for JS-rendered pages
 
 
@@ -53,6 +53,7 @@ class Command(BaseCommand):
 
         # Write failed URLs to a file
         if failed_urls:
+            failed_file.parent.mkdir(parents=True, exist_ok=True)
             with open(failed_file, "w") as f:
                 for url in failed_urls:
                     f.write(f"{url}\n")

@@ -3,6 +3,8 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
+from django.db.models import F
+
 from openai import OpenAI
 from .models import Product
 
@@ -62,7 +64,7 @@ SYSTEM_MESSAGE = {
         In Guided mode:
             - Do NOT ask about "Who are you shopping for?" or "What is your budget?".
             - Only ask: **"Which category of products are you interested in?"**.
-            - Provide the following categories:
+            - Provide the following categories (You may use some or all of them depending on the context):
                 - Clothing
                 - Toys
                 - Diapers
@@ -70,10 +72,12 @@ SYSTEM_MESSAGE = {
                 - Skin Care
                 - Schooling
                 - Gear
+                - Accessories
                 - Activity
             - When offering multiple-choice selections, respond using two keys:
                 - `"response"`: a string containing the question.
                 - `"options"`: a list of possible choices, always including "Start Over".
+            - If you need more information, ask the user with a restricted set of options as much as possible.
 
             
         Example JSON:
@@ -237,13 +241,16 @@ def handle_guided_questions(request, message):
 
         if response.get("options"):
             output["options"] = response.get("options")
-            
+
         return output
     
-    
+
 def query_products(attributes):
-    # This function should query the database for products matching the given attributes
-    # For now, we will just return a placeholder response
+    """
+    Query the database for products matching the given attributes.
+    @param attributes: Dictionary containing product attributes.
+    @return: List of products matching the attributes.
+    """
     if type(attributes) is list:
         attributes = attributes[0]
 
