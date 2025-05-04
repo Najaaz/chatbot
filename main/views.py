@@ -4,6 +4,7 @@ from django.http import HttpResponse
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from django.db.models import F
+from pgvector.django import CosineDistance
 
 from openai import OpenAI
 from .models import Product
@@ -105,7 +106,7 @@ SYSTEM_MESSAGE = {
             • durability — 0-10 scale — Build quality, materials, robustness
             • value_for_money — 0-10 scale — Affordability + usefulness
             • safety_perception — 0-10 scale — Inferred safety based on materials/reviews
-            • seasonal_use — List of relevant months (1-12)
+            • seasonal_use — List of integers (1-12) representing months, or empty list if not seasonal
             • sensitivity_level — 0-10 scale — Suitability for delicate skin or materials
             • waterproof — Boolean — Whether the item is waterproof
             • portability — 0-10 scale — Ease of carrying
@@ -127,6 +128,7 @@ SYSTEM_MESSAGE = {
             - Always include "response" even when sending "options" or "results".
             - If the user says "start over" or "reset," politely reset and ask again inside a JSON structure.
             - Your tone should always be helpful, warm, direct, and professional — but your response must be structured and only in JSON.
+            - Ensure all output uses plain ASCII characters. **Do not use Unicode** punctuation
     """
 }
 
@@ -254,13 +256,24 @@ def query_products(attributes):
     if type(attributes) is list:
         attributes = attributes[0]
 
-    products = Product.objects.filter(
-        is_active=True,
-        original_price__lte=attributes.get("maximum_price"),
-        gender__iexact=attributes.get("gender"),
-        age_suitability__iexact=normalise_hyphenated_string(attributes.get("age_suitability"))
-    ).values('url', 'name', 'current_price', 'image_urls').distinct()[:5]
-    products = list(products)  # Convert QuerySet to list for JSON serialization
+    text = f"""age_suitability {attributes['age_suitability']}; gender {attributes['gender']}; 
+        giftability {bucket_score(attributes['giftability'])}; educational_value {bucket_score(attributes['educational_value'])}; 
+        durability {bucket_score(attributes['durability'])}; value_for_money {bucket_score(attributes['value_for_money'])}; 
+        safety_perception {bucket_score(attributes['safety_perception'])}; seasonal_use [];
+    """
+
+    response = client.embeddings.create(
+        input=text,
+        model="text-embedding-3-small",
+        dimensions=1536
+    )
+
+    embedding_data = response.data[0].embedding
+    products = Product.objects.active().annotate(
+        similarity=CosineDistance("embedding", embedding_data)
+    ).filter(
+        current_price__lte=attributes['maximum_price']
+    ).order_by("similarity").values('url', 'name', 'current_price', 'image_urls').distinct()[:8]
 
     for product in products:
         # Make sure image_urls is a list
@@ -326,3 +339,12 @@ def normalise_hyphenated_string(string):
     Normalises a hyphenated string by replacing hyphens with dashes and removing spaces.
     """
     return unicodedata.normalize('NFKD', string).replace("–", "-").strip().lower()
+
+def bucket_score(x: float) -> str:
+    return (
+        "very low"  if x <= 2 else
+        "low"       if x <= 4 else
+        "medium"    if x <= 6 else
+        "high"      if x <= 8 else
+        "very high"
+    )
