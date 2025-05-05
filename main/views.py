@@ -61,6 +61,15 @@ SYSTEM_MESSAGE = {
             - You must **never output plain text, prose, or unstructured sentences** outside JSON format.
             - Each and every reply must be a **single JSON object**.
             - Every reply must have at least the `"response"` field.
+        
+        Formatting Rules:
+            - Always send a single valid JSON object.
+            - Never use ```json code blocks.
+            - Never send free-text outside JSON.
+            - Always include "response" even when sending "options" or "results".
+            - If the user says "start over" or "reset," politely reset and ask again inside a JSON structure.
+            - Your tone should always be helpful, warm, direct, and professional — but your response must be structured and only in JSON.
+            - Ensure all output uses plain ASCII characters. **Do not use Unicode** punctuation
 
         In Guided mode:
             - Do NOT ask about "Who are you shopping for?" or "What is your budget?".
@@ -95,11 +104,12 @@ SYSTEM_MESSAGE = {
             - If the user doesn't have a budget in free-flow mode, assume the maximum_price of Rs. 1,000,000.
             - If you fail to structure your response inside a single JSON object with both "response" and "results", the output will be invalid. 
             - You must never separate your responses into multiple pieces.
+            - If the user mentions a brand (e.g., "Barbie" or "Lego"), include it as the "brand" field in the product profile if it's relevant.
 
 
         Each product must include:
             • age_suitability — one of: '0-5 months', '6-11 months', '1-1.5 years', '1.6-2 years', '3-5 years', '6-8 years', '9-12 years', 'mothers', 'all ages'
-            • gender — 'Male', 'Female', or 'Unisex'
+            • gender — 'male', 'female', or 'unisex'
             • maximum_price — number (in Sri Lankan rupees) 
             • giftability — 0-10 scale — How suitable the item is as a gift
             • educational_value — 0-10 scale — Learning potential
@@ -119,16 +129,8 @@ SYSTEM_MESSAGE = {
             • weight_range — String — e.g., "0-6 kg" (free-text) - if known, otherwise null
             • count — Integer — Quantity or pack size - if known, otherwise null for any amount
             • color_options — List of strings — Available colors (e.g., ["Beige", "Pink"]) - if known, otherwise null for any colour
-            • brand — String — Brand name if known, otherwise null
-
-        Formatting Rules:
-            - Always send a single valid JSON object.
-            - Never use ```json code blocks.
-            - Never send free-text outside JSON.
-            - Always include "response" even when sending "options" or "results".
-            - If the user says "start over" or "reset," politely reset and ask again inside a JSON structure.
-            - Your tone should always be helpful, warm, direct, and professional — but your response must be structured and only in JSON.
-            - Ensure all output uses plain ASCII characters. **Do not use Unicode** punctuation
+            • brand — String — Brand name if mentioned by the user (e.g., "Barbie"), otherwise null
+            • categories — List of strings — e.g., ["Diapering", "Bags"] - if known, otherwise null
     """
 }
 
@@ -201,6 +203,7 @@ def handle_free_flow(request, message):
     output = {
         "success": True,
         "response": response.get("response"),
+        "temperature": 1.5,
     }
 
     add_message(request, "assistant", response.get("response") , response.get("results"))
@@ -255,24 +258,32 @@ def query_products(attributes):
     """
     if type(attributes) is list:
         attributes = attributes[0]
+    
 
-    text = f"""age_suitability {attributes['age_suitability']}; gender {attributes['gender']}; 
-        giftability {bucket_score(attributes['giftability'])}; educational_value {bucket_score(attributes['educational_value'])}; 
+    text = f"""giftability {bucket_score(attributes['giftability'])}; educational_value {bucket_score(attributes['educational_value'])}; 
         durability {bucket_score(attributes['durability'])}; value_for_money {bucket_score(attributes['value_for_money'])}; 
-        safety_perception {bucket_score(attributes['safety_perception'])}; seasonal_use [];
+        safety_perception {bucket_score(attributes['safety_perception'])}; seasonal_use {attributes['seasonal_use']}; 
+        sensitivity_level {bucket_score(attributes['sensitivity_level'])}; waterproof {attributes['waterproof']}; 
+        portability {bucket_score(attributes['portability'])}; design_features {attributes['design_features']}; 
+        package_quantity {attributes['package_quantity']}; usage_type {attributes['usage_type']};
+        material_origin {attributes['material_origin']}; chemical_safety {attributes['chemical_safety']}; size {attributes['size']}; 
+        weight_range {attributes['weight_range']}; count {attributes['count']}; brand {attributes['brand']};
+        color_availability {attributes['color_options']}; categories {attributes['categories']}
     """
 
     response = client.embeddings.create(
         input=text,
         model="text-embedding-3-small",
         dimensions=1536
-    )
+    ) 
 
     embedding_data = response.data[0].embedding
     products = Product.objects.active().annotate(
         similarity=CosineDistance("embedding", embedding_data)
     ).filter(
-        current_price__lte=attributes['maximum_price']
+        current_price__lte=attributes['maximum_price'],
+        gender=attributes['gender'],
+        age_suitability=attributes['age_suitability'],
     ).order_by("similarity").values('url', 'name', 'current_price', 'image_urls').distinct()[:8]
 
     for product in products:
@@ -302,7 +313,7 @@ def gpt_response(request):
             model="gpt-4-turbo",
             messages=request.session["messages"],
             max_tokens=2048,
-            temperature=1.0,
+            temperature=0.8,
         )
         content = response.choices[0].message
         # Now parse it as JSON

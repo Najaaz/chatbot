@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <img src="${result.image}" class="card-img-top" alt="${result.name}">
                 <div class="card-body p-2">
                     <h6 class="card-title mb-1 text-truncate">${result.name}</h6>
-                    <p class="card-text text-danger fw-bold mb-1">Rs. ${result.current_price}</p>
+                    <p class="card-text text-danger fw-bold mb-1">Rs. ${Number(result.current_price).toLocaleString('en-IN')}</p>
                     <a href="${result.url}" target="_blank" class="btn btn-sm btn-pink w-100">View Product</a>
                 </div>`;
             resultsEl.appendChild(card);

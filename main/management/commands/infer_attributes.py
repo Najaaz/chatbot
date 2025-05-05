@@ -83,9 +83,14 @@ def bucket_score(x: float) -> str:
 
 
 def save_embedding(self, product: Product):
-    embedding_text = f"""age_suitability {product.age_suitability}; gender {product.gender}; 
-    giftability {bucket_score(product.giftability)}; educational_value {bucket_score(product.educational_value)}; durability {bucket_score(product.durability)}; value_for_money {bucket_score(product.value_for_money)}; 
-    safety_perception {bucket_score(product.safety_perception)}; seasonal_use {product.seasonal_use};    
+    embedding_text = f"""giftability {bucket_score(product.giftability)}; educational_value {bucket_score(product.educational_value)}; 
+    durability {bucket_score(product.durability)}; value_for_money {bucket_score(product.value_for_money)}; 
+    safety_perception {bucket_score(product.safety_perception)}; seasonal_use {product.seasonal_use}; sensitivity_level {bucket_score(product.sensitivity_level)};
+    waterproof {product.waterproof}; portability {bucket_score(product.portability)};
+    design_features {product.design_features}; package_quantity {product.package_quantity}; usage_type {product.usage_type};
+    material_origin {product.material_origin}; chemical_safety {product.chemical_safety}; size {product.size}; 
+    weight_range {product.weight_range}; count {product.count}; brand {product.brand};
+    color_availability {product.color_options}; categories {product.categories}; 
     """
 
     embedding = client.embeddings.create(
@@ -116,17 +121,18 @@ class Command(BaseCommand):
 
         # Only choose the first 20 columns of the products table
         fields = [field.name for field in Product._meta.fields if field.name not in ['image_urls', 'id', 'url']][:17]
-        number_of_products = Product.objects.active().count()
+        products = Product.objects.filter(embedding=None)
+        number_of_products = products.count()
 
         self.stdout.write(f"Number of products to process: {number_of_products}")
         self.stdout.write(f"Fields to process: {fields}\n")
 
-        jump = 7
-        for i in range(7, number_of_products, jump):
+        jump = 6
+        for i in range(0, number_of_products, jump):
             end = min(i + jump, number_of_products)
             self.stdout.write(f"Processing products {i+1} to {end}...")
 
-            products = Product.objects.active().values(*fields)[i:end]
+            products = Product.objects.filter(embedding=None).values(*fields)[i:end]
             products = list(products)
 
             if not products:
@@ -136,19 +142,8 @@ class Command(BaseCommand):
             json_data = json.dumps(products, cls=DjangoJSONEncoder)
             self.stdout.write(f"JSON data: {json_data}") 
 
-            # inferred_attributes = [
-            #     {"name": "Philips Avent Natural Teat - 6M+ (2pcs)", "age_suitability": "6-11 months", "gender": "unisex", "giftability": 8, "educational_value": 2, "durability": 7, "value_for_money": 7, "safety_perception": 9, "seasonal_use": [], "sensitivity_level": 2, "waterproof": False, "portability": 9, "design_features": ["BPA-free", "anti-colic", "natural feel"], "chemical_safety": "BPA-free"},
-            #     {"name": "Kinderkraft Myway Adjustable ISOFIX Car Seat - Rear to Forward Facing - Birth to 12 Years - Black", "age_suitability": "0-12 years", "gender": "unisex", "giftability": 7, "educational_value": 1, "durability": 8, "value_for_money": 6, "safety_perception": 10, "seasonal_use": [], "sensitivity_level": 3, "waterproof": True, "portability": 4, "design_features": ["adjustable headrest", "ISOFIX installation", "side protection"]},
-            #     {"name": "Vicks BabyRub Oil 25ml (Moisturize, Soothe & Relax for Babies 3+ Months)", "age_suitability": "3-5 years", "gender": "unisex", "giftability": 6, "educational_value": 0, "durability": 5, "value_for_money": 8, "safety_perception": 8, "seasonal_use": [], "sensitivity_level": 1, "waterproof": False, "portability": 10},
-            #     {"name": "Johnsons Bedtime Baby Shampoo - Gentle Cleansing & Soothing Care (500ml)", "age_suitability": "all ages", "gender": "unisex", "giftability": 5, "educational_value": 0, "durability": 5, "value_for_money": 6, "safety_perception": 8, "seasonal_use": [], "sensitivity_level": 1, "waterproof": True, "portability": 8, "chemical_safety": "Free from dyes, parabens, sulphates & phthalates"},
-            #     {"name": "LUMALA Pixe 16\" Kids Bicycle for Girls", "age_suitability": "6-8 years", "gender": "female", "giftability": 9, "educational_value": 3, "durability": 9, "value_for_money": 7, "safety_perception": 9, "seasonal_use": [], "sensitivity_level": 2, "waterproof": False, "portability": 6, "design_features": ["sturdy training wheels", "comfortable seat", "chain guard"]},
-            #     {"name": "Faber Castell School Bag M1 Watermark JK 9 Years + - red - (FC574512)", "age_suitability": "9-12 years", "gender": "unisex", "giftability": 7, "educational_value": 1, "durability": 8, "value_for_money": 7, "safety_perception": 7, "seasonal_use": [], "sensitivity_level": 2, "waterproof": True, "portability": 7, "design_features": ["lightweight", "watermark design", "cushioned straps"], "material_origin": "polyester"},
-            #     {"name": "LUMALA Pixe 20\" Kids Bicycle for Girls", "age_suitability": "9-12 years", "gender": "female", "giftability": 8, "educational_value": 2, "durability": 9, "value_for_money": 7, "safety_perception": 9, "seasonal_use": [], "sensitivity_level": 3, "waterproof": False, "portability": 4, "design_features": ["sturdy construction", "front basket", "comfortable seat"]},
-            #     {"name": "Philips Avent Natural Teat - 3M+ (2pcs)", "age_suitability": "3-5 years", "gender": "unisex", "giftability": 8, "educational_value": 1, "durability": 8, "value_for_money": 8, "safety_perception": 10, "seasonal_use": [], "sensitivity_level": 3, "waterproof": False, "portability": 10, "design_features": ["BPA-free", "flexible", "anti-colic"], "chemical_safety": "BPA-free"},
-            #     {"name": "LUMALA Pixe 12\" Kids Bicycle for Girls", "age_suitability": "6-8 years", "gender": "female", "giftability": 8, "educational_value": 2, "durability": 8, "value_for_money": 7, "safety_perception": 9, "seasonal_use": [], "sensitivity_level": 3, "waterproof": False, "portability": 4, "design_features": ["sturdy training wheels", "comfortable seat", "front basket"]}
-            # ]
-
-            inferred_attributes = gpt_response(json_data)
+            inferred_attributes = []
+            # inferred_attributes = gpt_response(json_data)
             print("\nGPT OUTPUT:\n", inferred_attributes, "\n")
 
             # Update the product objects with the inferred attributes

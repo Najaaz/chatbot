@@ -120,14 +120,14 @@ class BaseParser:
             h1_elem = self.soup.select_one('h2.page-title span')
             if h1_elem and h1_elem.text.strip():
                 # Change everything to ASCII characters
-                h1_elem = h1_elem.encode('ascii', 'ignore').decode('ascii')
+                # h1_elem = h1_elem.encode('ascii', 'ignore').decode('ascii')
                 return h1_elem.text.strip()
             
             # Fallback to title tag
             if self.soup.title:
                 title_text = self.soup.title.text.strip()
                 # Change everything to ASCII characters
-                title_text = title_text.encode('ascii', 'ignore').decode('ascii')
+                # title_text = title_text.encode('ascii', 'ignore').decode('ascii')
                 # Remove site name if present
                 if ' - Kiddoz.lk' in title_text:
                     return title_text.split(' - Kiddoz.lk')[0].strip()
@@ -972,6 +972,7 @@ class StorageManager:
             product, created = Product.objects.update_or_create(
             name=product_data['name'],
             defaults={
+                'url': product_data.get('url', ''),
                 'brand': product_data.get('brand', ''),
                 'categories': product_data.get('categories', []),
 
@@ -1040,7 +1041,7 @@ class KiddozScraper:
 
                     # Wait for a specific element that indicates the page is fully loaded
                     try:
-                        WebDriverWait(driver, 3).until(
+                        WebDriverWait(driver, 4).until(
                             EC.presence_of_element_located((By.CSS_SELECTOR, ".swatch-attribute.color"))
                         )
                     except TimeoutException:
