@@ -6,4 +6,5 @@ urlpatterns = [
     path("", views.home, name="home"),
     path("set-choice/", views.set_choice, name="set_choice"),
     path("chat/", views.chat, name="chat"),
+    path("privacy-policy/", views.privacy_policy, name="privacy_policy"),
 ]

@@ -231,5 +231,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return cookieValue;
     }
+
+
+
+    // ── Privacy Consent Check ──
+    const consentBanner = document.getElementById('privacy-consent');
+    const acceptButton = document.getElementById('accept-privacy');
+
+    // Hide chatbot toggle button until consent is given
+    if (!localStorage.getItem('privacyAccepted')) {
+        document.getElementById('chat-toggle-button').style.display = 'none';
+        consentBanner.style.display = 'flex';
+    } else {
+        consentBanner.style.display = 'none';
+    }
+
+    // Accept consent
+    acceptButton.addEventListener('click', () => {
+        console.log(consentBanner);
+        localStorage.setItem('privacyAccepted', 'true');
+        consentBanner.style.display = 'none';
+        document.getElementById('chat-toggle-button').style.display = 'flex';
+    });
+
 });
   

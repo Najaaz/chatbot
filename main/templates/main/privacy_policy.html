@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Privacy Policy{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="mb-4 fw-bold">Privacy Policy</h1>
+
+    <p>This Privacy Policy explains how we collect, use, and protect your personal information when you use our chatbot on the Kiddoz.lk platform.</p>
+
+    <h3 class="mt-4">1. Information We Collect</h3>
+    <ul>
+        <li><strong>Chat Inputs:</strong> We collect the messages you send during your interaction with the chatbot to provide relevant product recommendations.</li>
+        <li><strong>Session Data:</strong> Basic information such as session IDs and timestamps may be stored temporarily to maintain conversation context.</li>
+        <li><strong>No Account or Personal Identification:</strong> We do not request or collect personally identifiable information such as names, email addresses, or payment details.</li>
+    </ul>
+
+    <h3 class="mt-4">2. How We Use Your Information</h3>
+    <ul>
+        <li>To process your product preferences and generate relevant recommendations.</li>
+        <li>To improve chatbot performance and user experience (in anonymised and aggregated form only).</li>
+    </ul>
+
+    <h3 class="mt-4">3. Data Storage</h3>
+    <ul>
+        <li>Chat data is stored temporarily in session memory and not linked to any identifiable user.</li>
+        <li>Product recommendation outputs may be logged for debugging and improvement, but these logs do not include sensitive data.</li>
+    </ul>
+
+    <h3 class="mt-4">4. Third-Party Services</h3>
+    <p>Our chatbot uses OpenAI’s GPT-4o API for natural language processing. Messages sent to the chatbot may be processed by OpenAI's systems in accordance with <a href="https://openai.com/policies/privacy-policy" target="_blank">OpenAI’s Privacy Policy</a>.</p>
+
+    <h3 class="mt-4">5. Security</h3>
+    <p>We follow standard security measures to protect the integrity of chatbot interactions and prevent unauthorised access. The system is hosted on a secure university server environment with restricted access.</p>
+
+    <h3 class="mt-4">6. Changes to This Policy</h3>
+    <p>This policy may be updated periodically. We recommend reviewing it regularly for any changes.</p>
+
+    <h3 class="mt-4">7. Contact</h3>
+    <p>If you have any questions about this Privacy Policy, please contact the Kiddoz.lk project team via your university supervisor or academic contact.</p>
+
+    <!-- Link back to home -->
+    <div class="mt-4">
+        <a href="{% url 'home' %}" class="btn btn-primary">Back to Home</a>
+    </div>
+</div>
+{% endblock %}

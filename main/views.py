@@ -3,7 +3,7 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
-from django.db.models import F
+from django.db.models import Q
 from pgvector.django import CosineDistance
 
 from openai import OpenAI
@@ -16,6 +16,8 @@ GUIDED_QUESTIONS = [
         "options": [
             "Mothers",
             "My Baby",
+            "My Child",
+            "Gift for a Child",
             "Gift for a Baby",
             "Gift for a Mother",
             "Other",
@@ -25,30 +27,38 @@ GUIDED_QUESTIONS = [
     {
         "question": "What is your budget?",
         "options": [
-            "Rs. 0 - Rs. 2,500",
-            "Rs. 2,500 - Rs. 10,000",
-            "Rs. 10,000 - Rs. 25,000",
-            "Rs. 25,000 - Rs. 50,000",
+            "< Rs. 2,500",
+            "< Rs. 10,000",
+            "< Rs. 25,000",
+            "< Rs. 50,000",
             "Rs. 50,000+",
             "Start Over"
         ],
     },
-    {
-        "question": "What type of product are you looking for?",
-        "options": [
-            "Clothing",
-            "Toys",
-            "Diapers",
-            "Accessories",
-            "Other",
-            "Start Over"
-        ],
-    }
+    # {
+    #     "question": "What type of product are you looking for?",
+    #     "options": [
+    #         "Clothing",
+    #         "Toys",
+    #         "Diapers",
+    #         "Accessories",
+    #         "Other",
+    #         "Start Over"
+    #     ],
+    # }
 ]
 
 SYSTEM_MESSAGE = {
     "role": "system",
     "content": """You are a smart, friendly, and highly capable shopping assistant for Kiddoz — a Sri Lankan e-commerce store specializing in products for babies, children (0 months to 12 years), mothers, and all ages. Your job is to help users find the best products through engaging, natural conversations that adapt to their needs.
+
+        ⚠️ ABSOLUTE FORMAT RULES — NEVER BREAK THESE:
+            - NEVER output plain text, markdown, or prose — ONLY a single valid JSON object per reply.
+            - NEVER use ```json code blocks.
+            - Every reply must be a single JSON object that includes at least the "response" field.
+            - NO introductory text, NO explanation — just the JSON.
+            - If a valid JSON object cannot be created (e.g., due to conflicting input), respond with a JSON object containing only a "response" AND helpful options.
+
 
         You work in two modes: 
             1. Guided mode: The user answers a sequence of structured questions (shopping target, budget, and product type). 
@@ -74,7 +84,7 @@ SYSTEM_MESSAGE = {
         In Guided mode:
             - Do NOT ask about "Who are you shopping for?" or "What is your budget?".
             - Only ask: **"Which category of products are you interested in?"**.
-            - Provide the following categories (You may use some or all of them depending on the context):
+            - Provide the following categories (You may use some or all of them depending on the context) IN A JSON OBJECT called "options":
                 - Clothing
                 - Toys
                 - Diapers
@@ -84,9 +94,9 @@ SYSTEM_MESSAGE = {
                 - Gear
                 - Accessories
                 - Activity
-            - When offering multiple-choice selections, respond using two keys:
-                - `"response"`: a string containing the question.
-                - `"options"`: a list of possible choices, always including "Start Over".
+            - REMEMBER that "Diapers" should NOT be shown as an option if the user is shopping for a mother or if its a gift for a baby
+            - ✅ You must ALWAYS send multiple-choice prompts as a single JSON object containing both "response" and "options".
+            - ❌ Do NOT send the question as plain text. The entire reply must be a valid JSON object — even in guided mode.
             - If you need more information, ask the user with a restricted set of options as much as possible.
 
             
@@ -142,6 +152,12 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 def home(request):
     reset_chat(request)  # Reset chat when the home page is loaded
     return render(request, "main/home.html")
+
+def privacy_policy(request):
+    """
+    Render the privacy policy page.
+    """
+    return render(request, "main/privacy_policy.html")
 
 @require_POST
 def set_choice(request):
@@ -203,7 +219,6 @@ def handle_free_flow(request, message):
     output = {
         "success": True,
         "response": response.get("response"),
-        "temperature": 1.5,
     }
 
     add_message(request, "assistant", response.get("response") , response.get("results"))
@@ -282,8 +297,9 @@ def query_products(attributes):
         similarity=CosineDistance("embedding", embedding_data)
     ).filter(
         current_price__lte=attributes['maximum_price'],
-        gender=attributes['gender'],
         age_suitability=attributes['age_suitability'],
+    ).filter(
+        Q(gender="unisex") | Q(gender=attributes['gender'])
     ).order_by("similarity").values('url', 'name', 'current_price', 'image_urls').distinct()[:8]
 
     for product in products:
@@ -310,13 +326,14 @@ def gpt_response(request):
     print(request.session["messages"][1:])
     try:
         response = client.chat.completions.create(
-            model="gpt-4-turbo",
+            model="gpt-4o",
             messages=request.session["messages"],
             max_tokens=2048,
-            temperature=0.8,
+            # temperature=0.8,
         )
         content = response.choices[0].message
         # Now parse it as JSON
+        print("\nGPT RAW RESPONSE:\n", content, "\n")
         try:
             parsed_response = json.loads(content.content)
         except json.JSONDecodeError:

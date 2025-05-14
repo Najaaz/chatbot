@@ -27,6 +27,15 @@
             </svg>
         </div>
 
+
+        <div id="privacy-consent" class="position-fixed bottom-0 start-0 end-0 bg-light border-top shadow-lg p-3 justify-content-between align-items-center" style="z-index: 1050; display: flex;">
+            <div class="me-3">
+                <strong>Before we begin:</strong> Please review our <a href="{% url 'privacy_policy' %}" target="_blank">Privacy Policy</a>. By continuing, you agree to the terms.
+            </div>
+            <button class="btn btn-primary btn-sm" id="accept-privacy">I Agree</button>
+        </div>
+
+
         <!-- chat window -->
         <div id="chat-window" class="flex-column shadow-lg">
             <div id="chat-header" class="d-flex justify-content-between align-items-center p-3">
@@ -76,7 +85,7 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js" integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq" crossorigin="anonymous"></script>
-<script src="{% static 'js/script.js' %}?v=5"></script>
+<script src="{% static 'js/script.js' %}?v=2"></script>
 
 </body>
 </html>

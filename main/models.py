@@ -76,7 +76,7 @@ class Product (models.Model):
     # — housekeeping —
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    is_active = models.BooleanField(default=True)                # soft delete flag
+    is_active = models.BooleanField(default=True)  # soft delete flag
 
     # — inferred attributes —
     age_suitability = models.CharField(max_length=20, choices=age_suitability_choices, default='0-5 months')  # e.g. "0-5 months"
