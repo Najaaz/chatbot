@@ -275,9 +275,9 @@ def query_products(attributes):
         attributes = attributes[0]
     
 
-    text = f"""giftability {bucket_score(attributes['giftability'])}; educational_value {bucket_score(attributes['educational_value'])}; 
+    text = f"""GIFTABILITY OF THE PRODUCT {bucket_score(attributes['giftability'])}; educational_value {bucket_score(attributes['educational_value'])}; 
         durability {bucket_score(attributes['durability'])}; value_for_money {bucket_score(attributes['value_for_money'])}; 
-        safety_perception {bucket_score(attributes['safety_perception'])}; seasonal_use {attributes['seasonal_use']}; 
+        safety_perception {bucket_score(attributes['safety_perception'])}; SEASONAL_USE OF THE PRODUCT {attributes['seasonal_use']}; 
         sensitivity_level {bucket_score(attributes['sensitivity_level'])}; waterproof {attributes['waterproof']}; 
         portability {bucket_score(attributes['portability'])}; design_features {attributes['design_features']}; 
         package_quantity {attributes['package_quantity']}; usage_type {attributes['usage_type']};
