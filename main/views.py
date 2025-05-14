@@ -24,17 +24,17 @@ GUIDED_QUESTIONS = [
             "Start Over"
         ],
     },
-    {
-        "question": "What is your budget?",
-        "options": [
-            "< Rs. 2,500",
-            "< Rs. 10,000",
-            "< Rs. 25,000",
-            "< Rs. 50,000",
-            "Rs. 50,000+",
-            "Start Over"
-        ],
-    },
+    # {
+    #     "question": "What is your budget?",
+    #     "options": [
+    #         "< Rs. 2,500",
+    #         "< Rs. 10,000",
+    #         "< Rs. 25,000",
+    #         "< Rs. 50,000",
+    #         "Rs. 50,000+",
+    #         "Start Over"
+    #     ],
+    # },
     # {
     #     "question": "What type of product are you looking for?",
     #     "options": [
@@ -82,8 +82,7 @@ SYSTEM_MESSAGE = {
             - Ensure all output uses plain ASCII characters. **Do not use Unicode** punctuation
 
         In Guided mode:
-            - Do NOT ask about "Who are you shopping for?" or "What is your budget?".
-            - Only ask: **"Which category of products are you interested in?"**.
+            - Do NOT ask about "Who are you shopping for?"
             - Provide the following categories (You may use some or all of them depending on the context) IN A JSON OBJECT called "options":
                 - Clothing
                 - Toys
@@ -98,6 +97,7 @@ SYSTEM_MESSAGE = {
             - ✅ You must ALWAYS send multiple-choice prompts as a single JSON object containing both "response" and "options".
             - ❌ Do NOT send the question as plain text. The entire reply must be a valid JSON object — even in guided mode.
             - If you need more information, ask the user with a restricted set of options as much as possible.
+            - When showing price options, ALWAYS INCLUDE THE CURRENCY (Rs.) in the options.
 
             
         Example JSON:
@@ -333,13 +333,14 @@ def gpt_response(request):
         )
         content = response.choices[0].message
         # Now parse it as JSON
-        print("\nGPT RAW RESPONSE:\n", content, "\n")
+        # print("\nGPT RAW RESPONSE:\n", content, "\n")
         try:
             parsed_response = json.loads(content.content)
         except json.JSONDecodeError:
             # If GPT didn't send perfect JSON (very rare with your system message now), handle the error
             print("GPT response is not valid JSON. Attempting to parse as a string.")
-            parsed_response = {"response": content.content}
+
+            parsed_response = ai_jsonify_string(content.content)
 
         # print("GPT RESPONSE:\n", content, "\n")
         print("\nGPT JSON RESPONSE:\n", parsed_response, "\n")
@@ -367,6 +368,29 @@ def normalise_hyphenated_string(string):
     Normalises a hyphenated string by replacing hyphens with dashes and removing spaces.
     """
     return unicodedata.normalize('NFKD', string).replace("–", "-").strip().lower()
+
+def ai_jsonify_string(string):
+    """
+    Converts a string to a JSON-compatible by asking OpenAI to do so.
+    """
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {
+                "role": "user",
+                "content": f"""Convert this string to a JSON-compatible format which can be run in python. 
+                        Free text has the label 'response', list of choices has the label 'options' and product attributes has the label 'results'.
+                        Nothing else should be included in the JSON object: {string}
+                    """
+            }
+        ],
+        max_tokens=500,
+    )
+    content = response.choices[0].message.content
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        return content
 
 def bucket_score(x: float) -> str:
     return (
