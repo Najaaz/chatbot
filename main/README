@@ -23,8 +23,8 @@ This is a Django-based AI-powered chatbot project developed for Kiddoz.lk - an e
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/kiddoz-chatbot.git
-cd kiddoz-chatbot
+git clone https://github.com/Najaaz/chatbot.git
+cd chatbot
 ```
 
 ### 2. Set Up a Virtual Environment
