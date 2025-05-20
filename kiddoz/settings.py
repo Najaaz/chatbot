@@ -79,6 +79,7 @@ WSGI_APPLICATION = 'kiddoz.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# RUN THIS CODE: psql -U admin -d kiddoz_db -h localhost -p 5432
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',

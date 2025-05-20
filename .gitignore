@@ -45,3 +45,6 @@ coverage.xml
 # pip-tools
 *.txt~
 __pypackages__/
+
+
+tests/

@@ -140,7 +140,7 @@ class Command(BaseCommand):
         self.stdout.write(f"Fields to process: {fields}\n")
 
         jump = 1
-        for i in range(23, number_of_products, jump):
+        for i in range(0, number_of_products, jump):
             end = min(i + jump, number_of_products)
             self.stdout.write(f"Processing products {i+1} to {end}...")
 
@@ -161,8 +161,8 @@ class Command(BaseCommand):
             if jump == 1:
                 inferred_attributes = gpt_response(json_data, image_url)
             else:
-                # inferred_attributes = gpt_response(json_data)
-                pass
+                inferred_attributes = gpt_response(json_data)
+                
             print("\nGPT OUTPUT:\n", inferred_attributes, "\n")
 
             # Update the product objects with the inferred attributes
